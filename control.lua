@@ -44,6 +44,21 @@ local function create_ghost_entity(args)
     return item
 end
 
+local function create_layout()
+    local furnace = create_ghost_entity{name="electric-furnace", position={0, 0}, modules={"productivity-module-3", "productivity-module-3"}}
+    local in_inserter = create_ghost_entity{name="inserter", position={-2, -1}, direction=12, filter="iron-ore"}
+    create_ghost_entity{name="inserter", position={2, -1}, direction=12}
+    create_ghost_entity{name="express-transport-belt", position={-3, -1}, direction=8}
+    create_ghost_entity{name="express-transport-belt", position={3, -1}, direction=0}
+end
+
+local function create_blueprint(player_index)
+    local player_stack = game.players[player_index].cursor_stack
+    player_stack.set_stack("blueprint")
+    player_stack.create_blueprint{surface=game.surfaces[1], force="player", area={left_top={-10, -10}, right_bottom={10, 10}}}
+    player_stack.label = "Blueprint"
+end
+
 script.on_init(function()
 
 end)
@@ -70,11 +85,8 @@ end)
 
 script.on_event(defines.events.on_lua_shortcut, function(event)
     if event.prototype_name == "blueprint-generation" then
-        local furnace = create_ghost_entity{name="electric-furnace", position={0, 0}, modules={"productivity-module-3", "productivity-module-3"}}
-        local in_inserter = create_ghost_entity{name="inserter", position={-2, -1}, direction=12, filter="iron-ore"}
-        create_ghost_entity{name="inserter", position={2, -1}, direction=12}
-        create_ghost_entity{name="express-transport-belt", position={-3, -1}, direction=8}
-        create_ghost_entity{name="express-transport-belt", position={3, -1}, direction=0}
+        create_layout()
+        create_blueprint(event.player_index)
     end
 end)
 
