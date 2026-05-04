@@ -45,11 +45,15 @@ local function create_ghost_entity(args)
 end
 
 local function create_layout()
-    local furnace = create_ghost_entity{name="electric-furnace", position={0, 0}, modules={"productivity-module-3", "productivity-module-3"}}
-    local in_inserter = create_ghost_entity{name="inserter", position={-2, -1}, direction=12, filter="iron-ore"}
-    create_ghost_entity{name="inserter", position={2, -1}, direction=12}
-    create_ghost_entity{name="express-transport-belt", position={-3, -1}, direction=8}
-    create_ghost_entity{name="express-transport-belt", position={3, -1}, direction=0}
+    local created_items = {}
+
+    table.insert(created_items, create_ghost_entity{name="electric-furnace", position={0, 0}, modules={"productivity-module-3", "productivity-module-3"}})
+    table.insert(created_items, create_ghost_entity{name="inserter", position={-2, -1}, direction=12, filter="iron-ore"})
+    table.insert(created_items, create_ghost_entity{name="inserter", position={2, -1}, direction=12})
+    table.insert(created_items, create_ghost_entity{name="express-transport-belt", position={-3, -1}, direction=8})
+    table.insert(created_items, create_ghost_entity{name="express-transport-belt", position={3, -1}, direction=0})
+
+    return created_items
 end
 
 local function create_blueprint(player_index)
@@ -57,6 +61,12 @@ local function create_blueprint(player_index)
     player_stack.set_stack("blueprint")
     player_stack.create_blueprint{surface=game.surfaces[1], force="player", area={left_top={-10, -10}, right_bottom={10, 10}}}
     player_stack.label = "Blueprint"
+end
+
+local function remove_layout(layout)
+    for _, entity in ipairs(layout) do
+        entity.destroy{}
+    end
 end
 
 script.on_init(function()
@@ -85,8 +95,9 @@ end)
 
 script.on_event(defines.events.on_lua_shortcut, function(event)
     if event.prototype_name == "blueprint-generation" then
-        create_layout()
+        local layout = create_layout()
         create_blueprint(event.player_index)
+        remove_layout(layout)
     end
 end)
 
