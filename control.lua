@@ -23,6 +23,57 @@ local function to_inventory_positions(items_array, inventory_slot)
     return inventory_positions
 end
 
+local function add_header(frame, size)
+    local header = frame.add{type="flow", direction="horizontal", style="bpgn_header"}
+    header.style.size = {size[1] - 24, 32}
+
+    header.add{type="label", caption={"bpgn.frame_caption"}, style="bpgn_title"}
+    header.add{type="empty-widget", style="bpgn_header_filler"}
+    header.add{type="sprite-button", name="bpgn_close_button", style="cancel_close_button", sprite="utility/close"}
+
+    return header
+end
+
+local function add_main_content(frame, size)
+    local main_flow = frame.add{type="flow", direction="vertical"}
+    main_flow.style.size = {size[1] - 24, size[2] - 32 - 40 - 8 - 28}
+    main_flow.style.horizontal_align = "left"
+    main_flow.style.vertical_align = "top"
+
+    return main_flow
+end
+
+local function add_footer(frame, size)
+    local footer = frame.add{type="flow", direction="horizontal", style="dialog_buttons_horizontal_flow"}
+    footer.style.size = {size[1] - 24, 40}
+
+    footer.add{type="empty-widget", style="bpgn_footer_filler"}
+
+    local confirm_flow = footer.add{type="flow", direction="horizontal", style="two_module_spacing_horizontal_flow"}
+    confirm_flow.add{type="button", name="bpgn_confirm", caption={"bpgn.button_confirm"}, style="confirm_button"}
+
+    return header
+end
+
+local function toggle_gui(player)
+    local element = player.gui.screen.bpgn_frame
+
+    if element then
+        element.destroy()
+        player.opened = nil
+    else
+        local main_frame = player.gui.screen.add{type="frame", name="bpgn_frame", direction="vertical"}
+        local main_frame_size = {800, 600}
+        main_frame.style.size = main_frame_size
+        main_frame.auto_center = true
+        player.opened = main_frame
+
+        add_header(main_frame, main_frame_size)
+        add_main_content(main_frame, main_frame_size)
+        add_footer(main_frame, main_frame_size)
+    end
+end
+
 local function create_ghost_entity(args)
     local m_direction = args.direction or 0
     local m_filters = args.filter and {{name=args.filter, index=1}} or nil
@@ -56,8 +107,8 @@ local function create_layout()
     return created_items
 end
 
-local function create_blueprint(player_index)
-    local player_stack = game.players[player_index].cursor_stack
+local function create_blueprint(player)
+    local player_stack = player.cursor_stack
     player_stack.set_stack("blueprint")
     player_stack.create_blueprint{surface=game.surfaces[1], force="player", area={left_top={-10, -10}, right_bottom={10, 10}}}
     player_stack.label = "Blueprint"
@@ -82,7 +133,16 @@ script.on_event(defines.events.on_player_removed, function(event)
 end)
 
 script.on_event(defines.events.on_gui_click, function(event)
+    if event.element and event.element.name == "bpgn_confirm" then
+        local player = game.players[event.player_index]
 
+        local layout = create_layout()
+        create_blueprint(player)
+        remove_layout(layout)
+        toggle_gui(game.players[event.player_index])
+    elseif event.element and event.element.name == "bpgn_close_button" then
+        toggle_gui(game.players[event.player_index])
+    end
 end)
 
 script.on_event(defines.events.on_gui_value_changed, function(event)
@@ -95,14 +155,14 @@ end)
 
 script.on_event(defines.events.on_lua_shortcut, function(event)
     if event.prototype_name == "blueprint-generation" then
-        local layout = create_layout()
-        create_blueprint(event.player_index)
-        remove_layout(layout)
+        toggle_gui(game.players[event.player_index])
     end
 end)
 
 script.on_event(defines.events.on_gui_closed, function(event)
-
+    if event.element and event.element.name == "bpgn_frame" then
+        toggle_gui(game.players[event.player_index])
+    end
 end)
 
 script.on_configuration_changed(function(config_changed_data)
