@@ -2,11 +2,26 @@ local gui = require("gui")
 local blueprint = require("blueprint")
 
 
+script.on_init(function()
+    for _, player in pairs(game.players) do
+        gui.destroy_gui(player)
+    end
+end)
+
+script.on_event(defines.events.on_singleplayer_init, function(event)
+    gui.destroy_gui(game.players[1])
+end)
+
+script.on_event(defines.events.on_player_joined_game, function(event)
+    gui.destroy_gui(game.players[event.player_index])
+end)
+
 script.on_event(defines.events.on_gui_click, function(event)
     if event.element and event.element.name == "bpgn_confirm" then
         local player = game.players[event.player_index]
-        blueprint.generate_blueprint(player)
-        gui.toggle_gui(game.players[event.player_index])
+        local recipe_name = gui.get_recipe_name(player)
+        blueprint.generate_blueprint(player, recipe_name)
+        gui.toggle_gui(player)
     elseif event.element and event.element.name == "bpgn_close_button" then
         gui.toggle_gui(game.players[event.player_index])
     end

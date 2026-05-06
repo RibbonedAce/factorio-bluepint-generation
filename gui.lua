@@ -1,8 +1,8 @@
 local gui = {}
 
-local function _add_header(frame, size)
-    local header = frame.add{type="flow", direction="horizontal", style="bpgn_header"}
-    header.style.size = {size[1] - 24, 32}
+local function _add_header(args)
+    local header = args.frame.add{type="flow", direction="horizontal", style="bpgn_header"}
+    header.style.size = {args.size[1] - 24, 32}
 
     header.add{type="label", caption={"bpgn.frame_caption"}, style="bpgn_title"}
     header.add{type="empty-widget", style="bpgn_header_filler"}
@@ -11,18 +11,19 @@ local function _add_header(frame, size)
     return header
 end
 
-local function _add_main_content(frame, size)
-    local main_flow = frame.add{type="flow", direction="vertical"}
-    main_flow.style.size = {size[1] - 24, size[2] - 32 - 40 - 8 - 24}
-    main_flow.style.horizontal_align = "left"
-    main_flow.style.vertical_align = "top"
+local function _add_main_content(args)
+    local main_flow = args.frame.add{type="flow", direction="vertical"}
+    main_flow.style.size = {args.size[1] - 24, args.size[2] - 32 - 40 - 8 - 24}
+
+    local recipe_button = main_flow.add{type="choose-elem-button", name="bpgn_recipe_button", elem_type="recipe", recipe="iron-plate", style="slot_button"}
+    args.storage.recipe_button = recipe_button
 
     return main_flow
 end
 
-local function _add_footer(frame, size)
-    local footer = frame.add{type="flow", direction="horizontal", style="dialog_buttons_horizontal_flow"}
-    footer.style.size = {size[1] - 24, 40}
+local function _add_footer(args)
+    local footer = args.frame.add{type="flow", direction="horizontal", style="dialog_buttons_horizontal_flow"}
+    footer.style.size = {args.size[1] - 24, 40}
 
     footer.add{type="empty-widget", style="bpgn_footer_filler"}
 
@@ -32,6 +33,19 @@ local function _add_footer(frame, size)
     return header
 end
 
+local function _initialize_gui_storage(player_index)
+    if not storage.bpgn_gui then
+        storage.bpgn_gui = {}
+    end
+
+    storage.bpgn_gui[player_index] = {recipe_button=nil}
+end
+
+function gui.get_recipe_name(player)
+    local element = storage.bpgn_gui[player.index].recipe_button
+    return element and element.elem_value or nil
+end
+
 function gui.destroy_gui(player)
     local element = player.gui.screen.bpgn_frame
 
@@ -39,6 +53,8 @@ function gui.destroy_gui(player)
         element.destroy()
         player.opened = nil
     end
+
+    _initialize_gui_storage(player.index)
 end
 
 function gui.toggle_gui(player)
@@ -53,9 +69,10 @@ function gui.toggle_gui(player)
         main_frame.auto_center = true
         player.opened = main_frame
 
-        _add_header(main_frame, main_frame_size)
-        _add_main_content(main_frame, main_frame_size)
-        _add_footer(main_frame, main_frame_size)
+        local gui_args = {frame=main_frame, storage=storage.bpgn_gui[player.index], size=main_frame_size}
+        _add_header(gui_args)
+        _add_main_content(gui_args)
+        _add_footer(gui_args)
     end
 end
 
