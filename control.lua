@@ -25,7 +25,7 @@ script.on_event(defines.events.on_gui_closed, function(event)
 end)
 
 script.on_configuration_changed(function(config_changed_data)
-    for _, player in game.players do
+    for _, player in pairs(game.players) do
         gui.destroy_gui(player)
     end
 end)
