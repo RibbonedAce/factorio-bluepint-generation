@@ -66,31 +66,66 @@ end
 local function _create_layout_input(created_items, recipe, crafting_machine_size)
     local input_filter = recipe.has_category("smelting") and recipe.ingredients[1].name or nil
 
-    if #recipe.ingredients <= 2 then
-        table.insert(created_items, _create_ghost_entity{name="inserter", position={-1 * (crafting_machine_size + 1), -1}, direction=left, filter=input_filter})
-        table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 2), -1}, direction=down})
-    elseif #recipe.ingredients <= 4 then
-        table.insert(created_items, _create_ghost_entity{name="inserter", position={-1 * (crafting_machine_size + 1), -1}, direction=left, filter=input_filter})
-        table.insert(created_items, _create_ghost_entity{name="inserter", position={-1 * (crafting_machine_size + 1), 0}, direction=left, filter=input_filter})
-        table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 3), -1}, direction=down})
-        table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 3), 0}, direction=right})
-        table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 2), 0}, direction=down})
-        table.insert(created_items, _create_ghost_entity{name="express-underground-belt", position={-1 * (crafting_machine_size + 2), -1}, type="input", direction=down})
+    local uses_fluid = false
+    local num_solid_ingredients = 0
+    for _, ingredient in ipairs(recipe.ingredients) do
+        if ingredient.type == "fluid" then
+            uses_fluid = true
+        else
+            num_solid_ingredients = num_solid_ingredients + 1
+        end
+    end
+
+    if uses_fluid then
+        if num_solid_ingredients == 0 then
+            table.insert(created_items, _create_ghost_entity{name="pipe", position={-1 * (crafting_machine_size + 1), -1}})
+            table.insert(created_items, _create_ghost_entity{name="pipe", position={-1 * (crafting_machine_size + 1), 0}})
+        elseif num_solid_ingredients <= 2 then
+            table.insert(created_items, _create_ghost_entity{name="pipe", position={-1 * (crafting_machine_size + 3), -1}})
+            table.insert(created_items, _create_ghost_entity{name="pipe", position={-1 * (crafting_machine_size + 3), 0}})
+            table.insert(created_items, _create_ghost_entity{name="pipe", position={-1 * (crafting_machine_size + 2), 0}})
+            table.insert(created_items, _create_ghost_entity{name="pipe", position={-1 * (crafting_machine_size + 1), 0}})
+            table.insert(created_items, _create_ghost_entity{name="inserter", position={-1 * (crafting_machine_size + 1), -1}, direction=left, filter=input_filter})
+            table.insert(created_items, _create_ghost_entity{name="express-underground-belt", position={-1 * (crafting_machine_size + 2), -1}, type="input", direction=down})
+        else
+            table.insert(created_items, _create_ghost_entity{name="pipe", position={-1 * (crafting_machine_size + 5), -1}})
+            table.insert(created_items, _create_ghost_entity{name="pipe", position={-1 * (crafting_machine_size + 5), 0}})
+            table.insert(created_items, _create_ghost_entity{name="pipe-to-ground", position={-1 * (crafting_machine_size + 4), 0}, direction=left})
+            table.insert(created_items, _create_ghost_entity{name="pipe-to-ground", position={-1 * (crafting_machine_size + 2), 0}, direction=right})
+            table.insert(created_items, _create_ghost_entity{name="inserter", position={-1 * (crafting_machine_size + 1), -1}, direction=left, filter=input_filter})
+            table.insert(created_items, _create_ghost_entity{name="inserter", position={-1 * (crafting_machine_size + 1), 1}, direction=left, filter=input_filter})
+            table.insert(created_items, _create_ghost_entity{name="express-underground-belt", position={-1 * (crafting_machine_size + 2), -1}, type="input", direction=down})
+            table.insert(created_items, _create_ghost_entity{name="express-underground-belt", position={-1 * (crafting_machine_size + 3), 0}, type="output", direction=down})
+            table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 3), 1}, direction=right})
+            table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 2), 1}, direction=right})
+        end
     else
-        table.insert(created_items, _create_ghost_entity{name="inserter", position={-1 * (crafting_machine_size + 1), -1}, direction=left, filter=input_filter})
-        table.insert(created_items, _create_ghost_entity{name="inserter", position={-1 * (crafting_machine_size + 1), 0}, direction=left, filter=input_filter})
-        table.insert(created_items, _create_ghost_entity{name="inserter", position={-1 * (crafting_machine_size + 1), 1}, direction=left, filter=input_filter})
-        table.insert(created_items, _create_ghost_entity{name="express-splitter", position={-1 * (crafting_machine_size + 5), -1}, direction=down})
-        table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 6), 0}, direction=down})
-        table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 6), 1}, direction=down})
-        table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 5), 0}, direction=right})
-        table.insert(created_items, _create_ghost_entity{name="express-underground-belt", position={-1 * (crafting_machine_size + 4), 0}, type="input", direction=right})
-        table.insert(created_items, _create_ghost_entity{name="express-underground-belt", position={-1 * (crafting_machine_size + 2), 0}, type="output", direction=right})
-        table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 3), -1}, direction=down})
-        table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 3), 0}, direction=down})
-        table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 3), 1}, direction=right})
-        table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 2), 1}, direction=down})
-        table.insert(created_items, _create_ghost_entity{name="express-underground-belt", position={-1 * (crafting_machine_size + 2), -1}, type="input", direction=down})
+        if num_solid_ingredients <= 2 then
+            table.insert(created_items, _create_ghost_entity{name="inserter", position={-1 * (crafting_machine_size + 1), -1}, direction=left, filter=input_filter})
+            table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 2), -1}, direction=down})
+        elseif num_solid_ingredients <= 4 then
+            table.insert(created_items, _create_ghost_entity{name="inserter", position={-1 * (crafting_machine_size + 1), -1}, direction=left, filter=input_filter})
+            table.insert(created_items, _create_ghost_entity{name="inserter", position={-1 * (crafting_machine_size + 1), 0}, direction=left, filter=input_filter})
+            table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 3), -1}, direction=down})
+            table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 3), 0}, direction=right})
+            table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 2), 0}, direction=down})
+            table.insert(created_items, _create_ghost_entity{name="express-underground-belt", position={-1 * (crafting_machine_size + 2), -1}, type="input", direction=down})
+        else
+            table.insert(created_items, _create_ghost_entity{name="inserter", position={-1 * (crafting_machine_size + 1), -1}, direction=left, filter=input_filter})
+            table.insert(created_items, _create_ghost_entity{name="inserter", position={-1 * (crafting_machine_size + 1), 0}, direction=left, filter=input_filter})
+            table.insert(created_items, _create_ghost_entity{name="inserter", position={-1 * (crafting_machine_size + 1), 1}, direction=left, filter=input_filter})
+            table.insert(created_items, _create_ghost_entity{name="express-splitter", position={-1 * (crafting_machine_size + 5), -1}, direction=down})
+            table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 6), 0}, direction=down})
+            table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 6), 1}, direction=down})
+            table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 5), 0}, direction=right})
+            table.insert(created_items, _create_ghost_entity{name="express-underground-belt", position={-1 * (crafting_machine_size + 4), 0}, type="input", direction=right})
+            table.insert(created_items, _create_ghost_entity{name="express-underground-belt", position={-1 * (crafting_machine_size + 2), 0}, type="output", direction=right})
+            table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 3), -1}, direction=down})
+            table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 3), 0}, direction=down})
+            table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 3), 1}, direction=right})
+            table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={-1 * (crafting_machine_size + 2), 1}, direction=down})
+            table.insert(created_items, _create_ghost_entity{name="express-underground-belt", position={-1 * (crafting_machine_size + 2), -1}, type="input", direction=down})
+        end
     end
 end
 
@@ -104,7 +139,7 @@ local function _create_layout(recipe)
             or recipe.has_category("oil-processing") and "oil-refinery"
             or "assembling-machine-3"
 
-    local crafting_machine = _create_ghost_entity{name=crafting_entity, position={0, 0}, modules=crafting_modules, recipe=recipe.name}
+    local crafting_machine = _create_ghost_entity{name=crafting_entity, position={0, 0}, modules=crafting_modules, recipe=recipe.name, direction=left}
     table.insert(created_items, crafting_machine)
 
     local crafting_machine_size = math.floor(_get_bounding_box_length(crafting_machine.bounding_box) / 2)
