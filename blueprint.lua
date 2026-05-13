@@ -73,6 +73,10 @@ local function _create_ghost_entity(args)
 end
 
 local function _create_layout_input(created_items, recipe, crafting_entity)
+    local function put(args)
+        table.insert(created_items, _create_ghost_entity(args))
+    end
+
     local crafting_entity_size = math.floor(_get_bounding_box_length(crafting_entity.bounding_box) / 2)
 
     local input_fluid_positions = {}
@@ -127,7 +131,7 @@ local function _create_layout_input(created_items, recipe, crafting_entity)
             local x_position = -1 * (crafting_entity_size + 1 + fluid_row_offset)
 
             for i = -crafting_entity_size, crafting_entity_size do
-                table.insert(created_items, _create_ghost_entity{name="pipe", position={x_position, i}})
+               put{name="pipe", position={x_position, i}}
             end
         else
             for i, m_position in ipairs(input_fluid_positions) do
@@ -135,25 +139,25 @@ local function _create_layout_input(created_items, recipe, crafting_entity)
 
                 for j = 0, i - 1 do
                     x_position = m_position.x - j - fluid_row_offset
-                    table.insert(created_items, _create_ghost_entity{name="pipe", position={x_position, m_position.y}})
+                    put{name="pipe", position={x_position, m_position.y}}
                 end
 
                 if m_position.y - 1 >= -crafting_entity_size then
-                    table.insert(created_items, _create_ghost_entity{name="pipe-to-ground", position={x_position, m_position.y - 1}, direction=down})
+                    put{name="pipe-to-ground", position={x_position, m_position.y - 1}, direction=down}
                 end
 
                 if m_position.y + 1 <= crafting_entity_size then
-                    table.insert(created_items, _create_ghost_entity{name="pipe-to-ground", position={x_position, m_position.y + 1}, direction=up})
+                    put{name="pipe-to-ground", position={x_position, m_position.y + 1}, direction=up}
                 end
             end
         end
 
         if fluid_row_offset > 0 then
             for _, m_position in ipairs(input_fluid_positions) do
-                table.insert(created_items, _create_ghost_entity{name="pipe-to-ground", position=m_position, direction=right})
+                put{name="pipe-to-ground", position=m_position, direction=right}
 
                 local x_position = m_position.x - fluid_row_offset + 1
-                table.insert(created_items, _create_ghost_entity{name="pipe-to-ground", position={x_position, m_position.y}, direction=left})
+                put{name="pipe-to-ground", position={x_position, m_position.y}, direction=left}
             end
         end
     end
@@ -170,42 +174,42 @@ local function _create_layout_input(created_items, recipe, crafting_entity)
         end
 
         if num_item_rows == 1 then
-            table.insert(created_items, _create_ghost_entity{name="inserter", position=input_item_positions[1], filters=input_filters, direction=left})
+            put{name="inserter", position=input_item_positions[1], filters=input_filters, direction=left}
             local x_position = -1 * (crafting_entity_size + 2)
 
             for i = -crafting_entity_size, crafting_entity_size do
-                table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={x_position, i}, direction=down})
+                put{name="express-transport-belt", position={x_position, i}, direction=down}
             end
         else
             for i = 1, num_item_rows do
-                table.insert(created_items, _create_ghost_entity{name="inserter", position=input_item_positions[i], filters=input_filters, direction=left})
+                put{name="inserter", position=input_item_positions[i], filters=input_filters, direction=left}
                 local x_position = input_item_positions[i].x - 3 * i
                 local y_offset = input_item_positions[i].y == crafting_entity_size and 1 or 0
                 local y_position = input_item_positions[i].y + y_offset - 1
 
                 for j = -crafting_entity_size, crafting_entity_size do
                     if j ~= y_position then
-                        table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={x_position, j}, direction=down})
+                        put{name="express-transport-belt", position={x_position, j}, direction=down}
                     end
                 end
 
-                table.insert(created_items, _create_ghost_entity{name="express-splitter", position={x_position + 1, y_position}, output_priority="left", direction=down})
-                table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={x_position + 1, y_position + 1}, direction=right})
+                put{name="express-splitter", position={x_position + 1, y_position}, output_priority="left", direction=down}
+                put{name="express-transport-belt", position={x_position + 1, y_position + 1}, direction=right}
 
                 for j = x_position + 2, input_item_positions[i].x - 2, 6 do
-                    table.insert(created_items, _create_ghost_entity{name="express-underground-belt", position={j, y_position + 1}, type="input", direction=right})
+                    put{name="express-underground-belt", position={j, y_position + 1}, type="input", direction=right}
                     local underground_exit_x_position = math.min(j + 6, input_item_positions[i].x - 2)
-                    table.insert(created_items, _create_ghost_entity{name="express-underground-belt", position={underground_exit_x_position, y_position + 1}, type="output", direction=right})
+                    put{name="express-underground-belt", position={underground_exit_x_position, y_position + 1}, type="output", direction=right}
                 end
 
                 local underground_exit_direction = y_offset == 0 and right or up
-                table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={input_item_positions[i].x - 1, y_position + 1}, direction=underground_exit_direction})
+                put{name="express-transport-belt", position={input_item_positions[i].x - 1, y_position + 1}, direction=underground_exit_direction}
 
                 for j = 1, y_offset do
                     if j == y_offset then
-                        table.insert(created_items, _create_ghost_entity{name="express-underground-belt", position={input_item_positions[i].x - 1, y_position + 1 - j}, type="input", direction=up})
+                        put{name="express-underground-belt", position={input_item_positions[i].x - 1, y_position + 1 - j}, type="input", direction=up}
                     else
-                        table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={input_item_positions[i].x - 1, y_position + 1 - j}, direction=up})
+                        put{name="express-transport-belt", position={input_item_positions[i].x - 1, y_position + 1 - j}, direction=up}
                     end
                 end
             end
@@ -214,6 +218,10 @@ local function _create_layout_input(created_items, recipe, crafting_entity)
 end
 
 local function _create_layout_output(created_items, recipe, crafting_entity)
+    local function put(args)
+        table.insert(created_items, _create_ghost_entity(args))
+    end
+
     local crafting_entity_size = math.floor(_get_bounding_box_length(crafting_entity.bounding_box) / 2)
     
     local output_fluid_positions = {}
@@ -266,7 +274,7 @@ local function _create_layout_output(created_items, recipe, crafting_entity)
             local x_position = crafting_entity_size + 1 + fluid_row_offset
 
             for i = -crafting_entity_size, crafting_entity_size do
-                table.insert(created_items, _create_ghost_entity{name="pipe", position={x_position, i}})
+                put{name="pipe", position={x_position, i}}
             end
         else
             for i, m_position in ipairs(output_fluid_positions) do
@@ -274,34 +282,34 @@ local function _create_layout_output(created_items, recipe, crafting_entity)
 
                 for j = 0, i - 1 do
                     x_position = m_position.x + j + fluid_row_offset
-                    table.insert(created_items, _create_ghost_entity{name="pipe", position={x_position, m_position.y}})
+                    put{name="pipe", position={x_position, m_position.y}}
                 end
 
                 if m_position.y - 1 >= -crafting_entity_size then
-                    table.insert(created_items, _create_ghost_entity{name="pipe-to-ground", position={x_position, m_position.y - 1}, direction=down})
+                    put{name="pipe-to-ground", position={x_position, m_position.y - 1}, direction=down}
                 end
 
                 if m_position.y + 1 <= crafting_entity_size then
-                    table.insert(created_items, _create_ghost_entity{name="pipe-to-ground", position={x_position, m_position.y + 1}, direction=up})
+                    put{name="pipe-to-ground", position={x_position, m_position.y + 1}, direction=up}
                 end
             end
         end
 
         if fluid_row_offset > 0 then
             for _, m_position in ipairs(output_fluid_positions) do
-                table.insert(created_items, _create_ghost_entity{name="pipe-to-ground", position=m_position, direction=left})
+                put{name="pipe-to-ground", position=m_position, direction=left}
 
                 local x_position = m_position.x + fluid_row_offset - 1
-                table.insert(created_items, _create_ghost_entity{name="pipe-to-ground", position={x_position, m_position.y}, direction=right})
+                put{name="pipe-to-ground", position={x_position, m_position.y}, direction=right}
             end
         end
     end
 
     if num_item_rows > 0 then
-        table.insert(created_items, _create_ghost_entity{name="inserter", position=output_item_positions[1], direction=left})
+        put{name="inserter", position=output_item_positions[1], direction=left}
 
         for i = -crafting_entity_size, crafting_entity_size do
-            table.insert(created_items, _create_ghost_entity{name="express-transport-belt", position={crafting_entity_size + 2, i}, direction=up})
+            put{name="express-transport-belt", position={crafting_entity_size + 2, i}, direction=up}
         end
     end
 end
