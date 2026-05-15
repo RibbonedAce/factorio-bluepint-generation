@@ -18,6 +18,9 @@ local function _add_main_content(args)
     local recipe_button = main_flow.add{type="choose-elem-button", name="bpgn_recipe_button", elem_type="recipe", recipe="iron-plate", style="slot_button"}
     args.storage.recipe_button = recipe_button
 
+    local quantity_text = main_flow.add{type="textfield", name="bpgn_quantity_text", text="1", numeric=true, allow_decimal=false, allow_negative=false}
+    args.storage.quantity_text = quantity_text
+
     return main_flow
 end
 
@@ -38,12 +41,19 @@ local function _initialize_gui_storage(player_index)
         storage.bpgn_gui = {}
     end
 
-    storage.bpgn_gui[player_index] = {recipe_button=nil}
+    storage.bpgn_gui[player_index] = {recipe_button=nil, quantity_text=nil}
 end
 
-function gui.get_recipe_name(player)
-    local element = storage.bpgn_gui[player.index].recipe_button
-    return element and element.elem_value or nil
+function gui.get_recipe_data(player)
+    local player_gui = storage.bpgn_gui[player.index]
+
+    local button_element = player_gui.recipe_button
+    local m_recipe = button_element and button_element.elem_value or nil
+
+    local text_element = player_gui.quantity_text
+    local m_quantity = text_element and tonumber(text_element.text) or 1
+
+    return {recipe=m_recipe, quantity=m_quantity}
 end
 
 function gui.destroy_gui(player)

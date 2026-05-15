@@ -19,8 +19,8 @@ end)
 script.on_event(defines.events.on_gui_click, function(event)
     if event.element and event.element.name == "bpgn_confirm" then
         local player = game.players[event.player_index]
-        local recipe_name = gui.get_recipe_name(player)
-        blueprint.generate_blueprint(player, recipe_name)
+        local recipe_data = gui.get_recipe_data(player)
+        blueprint.generate_blueprint(player, recipe_data)
         gui.toggle_gui(player)
     elseif event.element and event.element.name == "bpgn_close_button" then
         gui.toggle_gui(game.players[event.player_index])
