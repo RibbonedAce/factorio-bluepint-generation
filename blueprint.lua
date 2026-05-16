@@ -498,6 +498,9 @@ local function _create_blueprint(player)
     player_stack.set_stack("blueprint")
     player_stack.create_blueprint{surface=game.surfaces[1], force="player", area={left_top={-100, -100}, right_bottom={100, 100}}}
     player_stack.label = "Blueprint"
+
+    player.add_to_clipboard(player_stack)
+    player.activate_paste()
 end
 
 local function _remove_layout(layout)
