@@ -1,0 +1,86 @@
+package.path = "../?.lua"
+
+local common = require("blueprint.common")
+local util = require("util")
+
+
+local output = {}
+
+local function _place_single_fluid_row(args)
+   local x_position = args.crafting_entity_size + 1
+
+   for i = -args.crafting_entity_size, args.crafting_entity_size do
+       args.put{name="pipe", position={x_position, i}}
+   end
+end
+
+local function _place_multiple_fluid_rows(args)
+   for i, m_position in ipairs(args.output_fluid_positions) do
+       local x_position = m_position.x
+
+       for j = 0, i - 1 do
+           x_position = m_position.x + j
+           args.put{name="pipe", position={x_position, m_position.y}}
+       end
+
+       if m_position.y - 1 >= -args.crafting_entity_size then
+           if m_position.y - 2 >= -args.crafting_entity_size then
+               args.put{name="pipe-to-ground", position={x_position, m_position.y - 1}, direction=south}
+           else
+               args.put{name="pipe", position={x_position, m_position.y - 1}}
+           end
+       end
+
+       if m_position.y + 1 <= args.crafting_entity_size then
+           if m_position.y + 2 <= args.crafting_entity_size then
+               args.put{name="pipe-to-ground", position={x_position, m_position.y + 1}, direction=north}
+           else
+               args.put{name="pipe", position={x_position, m_position.y + 1}}
+           end
+       end
+   end
+end
+
+local function _place_fluid_rows(args)
+    if args.num_fluid_rows <= 0 then
+        return
+    end
+
+    if args.num_fluid_rows == 1 then
+        _place_single_fluid_row(args)
+    else
+        _place_multiple_fluid_rows(args)
+    end
+end
+
+local function _place_single_item_row(args)
+    args.output_index = args.parity == "even" and 1 or #args.output_item_positions
+    args.output_item_position = args.output_item_positions[args.output_index]
+
+    args.put{name="inserter", position=args.output_item_position, direction=west}
+
+    for i = -args.crafting_entity_size, args.crafting_entity_size do
+        args.put{name="express-transport-belt", position={args.crafting_entity_size + 2, i}, direction=north}
+    end
+end
+
+local function _place_item_rows(args)
+    if args.num_item_rows > 0 then
+        _place_single_item_row(args)
+    end
+end
+
+function output.create_layout(args)
+    args.put = common.put(args)
+    args.crafting_entity_size = common.get_half_length(args.crafting_entity.bounding_box)
+    args.output_fluid_positions = common.get_fluid_connection_positions(args.crafting_entity, args.position, "output")
+    args.output_item_positions = common.get_item_inserter_positions(args.crafting_entity_size, args.output_fluid_positions, "output")
+
+    local product_data = common.get_component_data(args.recipe.products)
+    util.insert_all(args, product_data)
+
+    _place_fluid_rows(args)
+    _place_item_rows(args)
+end
+
+return output

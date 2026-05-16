@@ -1,5 +1,5 @@
 local gui = require("gui")
-local blueprint = require("blueprint")
+local blueprint = require("blueprint.blueprint")
 
 
 script.on_init(function()
