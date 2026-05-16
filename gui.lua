@@ -1,3 +1,6 @@
+local memory = require("memory")
+
+
 local gui = {}
 
 local function _add_header(args)
@@ -15,11 +18,13 @@ local function _add_main_content(args)
     local main_flow = args.frame.add{type="flow", direction="vertical"}
     main_flow.style.size = {args.size[1] - 24, args.size[2] - 32 - 40 - 8 - 24}
 
-    local recipe_button = main_flow.add{type="choose-elem-button", name="bpgn_recipe_button", elem_type="recipe", recipe="iron-plate", style="slot_button"}
-    args.storage.recipe_button = recipe_button
+    local placeholder_recipe = args.memory_storage.recipe and args.memory_storage.recipe or "iron-plate"
+    local recipe_button = main_flow.add{type="choose-elem-button", name="bpgn_recipe_button", elem_type="recipe", recipe=placeholder_recipe, style="slot_button"}
+    args.gui_storage.recipe_button = recipe_button
 
-    local quantity_text = main_flow.add{type="textfield", name="bpgn_quantity_text", text="1", numeric=true, allow_decimal=false, allow_negative=false}
-    args.storage.quantity_text = quantity_text
+    local placeholder_quantity = args.memory_storage.quantity and tostring(args.memory_storage.quantity) or "1"
+    local quantity_text = main_flow.add{type="textfield", name="bpgn_quantity_text", text=placeholder_quantity, numeric=true, allow_decimal=false, allow_negative=false}
+    args.gui_storage.quantity_text = quantity_text
 
     return main_flow
 end
@@ -36,7 +41,7 @@ local function _add_footer(args)
     return header
 end
 
-local function _initialize_gui_storage(player_index)
+local function _init(player_index)
     if not storage.bpgn_gui then
         storage.bpgn_gui = {}
     end
@@ -56,7 +61,7 @@ function gui.get_recipe_data(player)
     return {recipe=m_recipe, quantity=m_quantity}
 end
 
-function gui.destroy_gui(player)
+function gui.destroy(player)
     local element = player.gui.screen.bpgn_frame
 
     if element then
@@ -64,14 +69,14 @@ function gui.destroy_gui(player)
         player.opened = nil
     end
 
-    _initialize_gui_storage(player.index)
+    _init(player.index)
 end
 
-function gui.toggle_gui(player)
+function gui.toggle(player)
     local element = player.gui.screen.bpgn_frame
 
     if element then
-        gui.destroy_gui(player)
+        gui.destroy(player)
     else
         local main_frame = player.gui.screen.add{type="frame", name="bpgn_frame", direction="vertical"}
         local main_frame_size = {800, 600}
@@ -79,7 +84,13 @@ function gui.toggle_gui(player)
         main_frame.auto_center = true
         player.opened = main_frame
 
-        local gui_args = {frame=main_frame, storage=storage.bpgn_gui[player.index], size=main_frame_size}
+        local gui_args = {
+            frame=main_frame,
+            gui_storage=storage.bpgn_gui[player.index],
+            memory_storage=memory.retrieve(player.index),
+            size=main_frame_size
+        }
+
         _add_header(gui_args)
         _add_main_content(gui_args)
         _add_footer(gui_args)
