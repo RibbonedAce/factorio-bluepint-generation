@@ -2,6 +2,7 @@ package.path = "../?.lua"
 
 local common = require("blueprint.common")
 local util = require("util")
+local Position = require("metatables.Position")
 
 
 local input = {}
@@ -22,26 +23,27 @@ end
 
 local function _place_multiple_fluid_rows(args)
     for i, m_position in ipairs(args.fluid_positions) do
-        local x_position = m_position.x - args.fluid_row_offset
+        m_position = m_position - {args.fluid_row_offset, 0}
 
         for j = 0, i - 1 do
-            x_position = m_position.x - j - args.fluid_row_offset
-            args.put{name="pipe", position={x_position, m_position.y}}
+            args.put{name="pipe", position=m_position - {j, 0}}
         end
+
+        m_position = m_position - {i - 1, 0}
 
         if m_position.y - 1 >= -args.crafting_entity_size then
             if m_position.y - 2 >= -args.crafting_entity_size then
-                args.put{name="pipe-to-ground", position={x_position, m_position.y - 1}, direction=south}
+                args.put{name="pipe-to-ground", position=m_position - {0, 1}, direction=south}
             else
-                args.put{name="pipe", position={x_position, m_position.y - 1}}
+                args.put{name="pipe", position=m_position - {0, 1}}
             end
         end
 
         if m_position.y + 1 <= args.crafting_entity_size then
             if m_position.y + 2 <= args.crafting_entity_size then
-                args.put{name="pipe-to-ground", position={x_position, m_position.y + 1}, direction=north}
+                args.put{name="pipe-to-ground", position=m_position + {0, 1}, direction=north}
             else
-                args.put{name="pipe", position={x_position, m_position.y + 1}}
+                args.put{name="pipe", position=m_position + {0, 1}}
             end
         end
     end
@@ -50,9 +52,7 @@ end
 local function _place_pipe_trench(args)
    for _, m_position in ipairs(args.fluid_positions) do
        args.put{name="pipe-to-ground", position=m_position, direction=east}
-
-       local x_position = m_position.x - args.fluid_row_offset + 1
-       args.put{name="pipe-to-ground", position={x_position, m_position.y}, direction=west}
+       args.put{name="pipe-to-ground", position=m_position + {1 - args.fluid_row_offset, 0}, direction=west}
    end
 end
 
@@ -98,7 +98,7 @@ local function _place_single_item_row(args)
 
     if args.electric_pole then
         if #args.item_positions == 1 then
-            args.put{name=args.electric_pole.name, position=common.add_positions(args.input_item_position, {-2, 0})}
+            args.put{name=args.electric_pole.name, position=args.input_item_position - {2, 0}}
         else
             args.put{name=args.electric_pole.name, position=args.item_positions[#args.item_positions - 1]}
         end
@@ -126,7 +126,7 @@ local function _place_double_item_rows(args)
 
     if args.electric_pole then
         if #args.item_positions == 2 then
-            args.put{name=args.electric_pole.name, position=common.add_positions(args.item_positions[2], {-3, 0})}
+            args.put{name=args.electric_pole.name, position=args.item_positions[2] - {3, 0}}
         else
             args.put{name=args.electric_pole.name, position=args.item_positions[#args.item_positions - 1]}
         end
@@ -139,47 +139,46 @@ local function _place_multiple_item_rows(args)
         args.input_item_position = args.item_positions[args.input_index]
 
         args.put{name="bulk-inserter", position=args.input_item_position, filters=args.input_filters, direction=west}
-        local x_position = args.input_item_position.x - 3 * i
         local y_offset = args.input_item_position.y == args.crafting_entity_size and 1 or 0
-        local y_position = args.input_item_position.y + y_offset - 1
+        local base_position = args.input_item_position + {-3 * i, y_offset - 1}
 
         for j = -args.crafting_entity_size, args.crafting_entity_size do
-            if j ~= y_position then
-                args.put{name="express-transport-belt", position={x_position, j}, direction=south}
+            if j ~= base_position.y then
+                args.put{name="express-transport-belt", position={base_position.x, j}, direction=south}
             end
         end
 
-        args.put{name="express-splitter", position={x_position + 1, y_position}, output_priority="left", direction=south}
-        args.put{name="express-transport-belt", position={x_position + 1, y_position + 1}, direction=east}
+        args.put{name="express-splitter", position=base_position + {1, 0}, output_priority="left", direction=south}
+        args.put{name="express-transport-belt", position=base_position + {1, 1}, direction=east}
 
-        local covering_multiple = y_position + 1 == -args.crafting_entity_size or y_position == args.crafting_entity_size
+        local covering_multiple = base_position.y + 1 == -args.crafting_entity_size or base_position.y == args.crafting_entity_size
 
-        for j = x_position + 2, args.input_item_position.x - 2, 6 do
-            args.put{name="express-underground-belt", position={j, y_position + 1}, type="input", direction=east}
+        for j = base_position.x + 2, args.input_item_position.x - 2, 6 do
+            args.put{name="express-underground-belt", position={j, base_position.y + 1}, type="input", direction=east}
 
             local underground_exit_x_position = math.min(j + 6, args.input_item_position.x - 2)
             if not covering_multiple and underground_exit_x_position == args.input_item_position.x - 2 then
                  underground_exit_x_position = underground_exit_x_position + 1
             end
 
-            args.put{name="express-underground-belt", position={underground_exit_x_position, y_position + 1}, type="output", direction=east}
+            args.put{name="express-underground-belt", position={underground_exit_x_position, base_position.y + 1}, type="output", direction=east}
         end
 
         if covering_multiple then
-            args.put{name="express-transport-belt", position={args.input_item_position.x - 1, y_position + 1}, direction=north}
+            args.put{name="express-transport-belt", position={args.input_item_position.x - 1, base_position.y + 1}, direction=north}
         end
 
         for j = 1, y_offset do
             if j == y_offset then
-                args.put{name="express-underground-belt", position={args.input_item_position.x - 1, y_position + 1 - j}, type="input", direction=north}
+                args.put{name="express-underground-belt", position={args.input_item_position.x - 1, base_position.y + 1 - j}, type="input", direction=north}
             else
-                args.put{name="express-transport-belt", position={args.input_item_position.x - 1, y_position + 1 - j}, direction=north}
+                args.put{name="express-transport-belt", position={args.input_item_position.x - 1, base_position.y + 1 - j}, direction=north}
             end
         end
     end
 
     if args.electric_pole then
-        local electric_pole_position = common.add_positions(args.item_positions[2], {-2, 0})
+        local electric_pole_position = args.item_positions[2] - {2, 0}
         args.put{name=args.electric_pole.name, position=electric_pole_position}
     end
 end
