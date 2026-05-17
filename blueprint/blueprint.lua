@@ -16,16 +16,15 @@ end
 local function _create_layout(args)
     local m_mirror = args.parity == "even" and "vertical" or nil
 
-    local crafting_entity = common.create_ghost_entity{
-        name=args.name, 
-        position=args.position, 
-        modules=args.modules, 
-        recipe=args.recipe.name, 
+    local crafting_entity = common.put(args){
+        name=args.name,
+        position={x=0, y=0},
+        modules=args.modules,
+        recipe=args.recipe.name,
         direction=args.direction,
         mirror=m_mirror
     }
 
-    table.insert(args.created_items, crafting_entity)
     args.crafting_entity = crafting_entity
 
     input.create_layout(args)
@@ -33,7 +32,7 @@ local function _create_layout(args)
 end
 
 local function _create_layouts(recipe, num_crafting)
-    local created_items = {}
+    local created_entities = {}
 
     local crafting_modules = _determine_modules_from_recipe(recipe)
     local crafting_entity_name = recipe.has_category("smelting") and "electric-furnace"
@@ -53,7 +52,7 @@ local function _create_layouts(recipe, num_crafting)
                 or "middle"
 
         _create_layout{
-            created_items=created_items,
+            created_entities=created_entities,
             recipe=recipe,
             name=crafting_entity_name,
             position=relative_position,
@@ -64,7 +63,7 @@ local function _create_layouts(recipe, num_crafting)
         }
     end
 
-    return created_items
+    return created_entities
 end
 
 local function _create_blueprint(player)

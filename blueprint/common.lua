@@ -28,27 +28,6 @@ local function _to_inventory_positions(items_array, inventory_slot)
     return inventory_positions
 end
 
-local function _add_positions(p_1, p_2)
-    if not p_1 and not p_2 then
-        return nil
-    end
-
-    if not p_1 then
-        return p_2
-    end
-
-    if not p_2 then
-        return p_1
-    end
-
-    x_1 = p_1.x and p_1.x or p_1[1]
-    x_2 = p_2.x and p_2.x or p_2[1]
-    y_1 = p_1.y and p_1.y or p_1[2]
-    y_2 = p_2.y and p_2.y or p_2[2]
-
-    return {x=x_1 + x_2, y=y_1 + y_2}
-end
-
 local function _flip_entities(entities)
     if not entities or not #entities or #entities == 0 then
         return
@@ -76,6 +55,43 @@ local function _flip_entities(entities)
     end
 end
 
+local function _add_positions(p_1, p_2)
+    if not p_1 and not p_2 then
+        return nil
+    end
+
+    if not p_1 then
+        return p_2
+    end
+
+    if not p_2 then
+        return p_1
+    end
+
+    local x_1 = p_1.x and p_1.x or p_1[1]
+    local x_2 = p_2.x and p_2.x or p_2[1]
+    local y_1 = p_1.y and p_1.y or p_1[2]
+    local y_2 = p_2.y and p_2.y or p_2[2]
+
+    return {x=x_1 + x_2, y=y_1 + y_2}
+end
+
+function common.add_positions(...)
+    local arg = {...}
+
+    if not arg or arg.n == 0 then
+        return nil
+    end
+
+    local result = {x=0, y=0}
+
+    for i = 1, #arg do
+        result = _add_positions(result, arg[i])
+    end
+
+    return result
+end
+
 function common.get_fluid_connection_positions(entity, position, direction)
     local fluid_positions = {}
     local fluidbox = entity.fluidbox
@@ -84,7 +100,7 @@ function common.get_fluid_connection_positions(entity, position, direction)
         for _, pipe in ipairs(fluidbox.get_pipe_connections(i)) do
             if pipe.flow_direction == direction then
                 local abs_fluid_position = {x=pipe.target_position.x - 0.5, y=pipe.target_position.y - 0.5}
-                local fluid_position = _add_positions(abs_fluid_position, {x=-1 * position.x, y=-1 * position.y})
+                local fluid_position = common.add_positions(abs_fluid_position, {x=-1 * position.x, y=-1 * position.y})
                 table.insert(fluid_positions, fluid_position)
             end
         end
@@ -201,9 +217,9 @@ end
 
 function common.put(args)
     local function put(i_args)
-        i_args.position = _add_positions(i_args.position, args.position)
+        i_args.position = common.add_positions(i_args.position, args.position)
         local new_entity = common.create_ghost_entity(i_args)
-        table.insert(args.created_items, new_entity)
+        table.insert(args.created_entities, new_entity)
         return new_entity
     end
 

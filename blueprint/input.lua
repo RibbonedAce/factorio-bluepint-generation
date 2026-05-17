@@ -75,7 +75,7 @@ local function _place_fluid_rows(args)
 end
 
 local function _get_input_filters(entity, items)
-    if entity.ghost_prototype.type == "assembling-machine" then
+    if entity.ghost_type == "assembling-machine" then
         return nil
     end
 
@@ -95,6 +95,14 @@ local function _place_single_item_row(args)
     for i = -args.crafting_entity_size, args.crafting_entity_size do
         args.put{name="express-transport-belt", position={x_position, i}, direction=south}
     end
+
+    if args.electric_pole then
+        if #args.input_item_positions == 1 then
+            args.put{name=args.electric_pole.name, position=common.add_positions(args.input_item_position, {-2, 0})}
+        else
+            args.put{name=args.electric_pole.name, position=args.input_item_positions[#args.input_item_positions - 1]}
+        end
+    end
 end
 
 local function _place_double_item_rows(args)
@@ -113,6 +121,14 @@ local function _place_double_item_rows(args)
         else
             args.put{name="express-transport-belt", position={args.input_item_position.x - 1, j}, direction=south}
             args.put{name="express-transport-belt", position={args.input_item_position.x - 2, j}, direction=south}
+        end
+    end
+
+    if args.electric_pole then
+        if #args.input_item_positions == 2 then
+            args.put{name=args.electric_pole.name, position=common.add_positions(args.input_item_positions[2], {-3, 0})}
+        else
+            args.put{name=args.electric_pole.name, position=args.input_item_positions[#args.input_item_positions - 1]}
         end
     end
 end
@@ -136,14 +152,22 @@ local function _place_multiple_item_rows(args)
         args.put{name="express-splitter", position={x_position + 1, y_position}, output_priority="left", direction=south}
         args.put{name="express-transport-belt", position={x_position + 1, y_position + 1}, direction=east}
 
+        local covering_multiple = y_position + 1 == -args.crafting_entity_size or y_position == args.crafting_entity_size
+
         for j = x_position + 2, args.input_item_position.x - 2, 6 do
             args.put{name="express-underground-belt", position={j, y_position + 1}, type="input", direction=east}
+
             local underground_exit_x_position = math.min(j + 6, args.input_item_position.x - 2)
+            if not covering_multiple and underground_exit_x_position == args.input_item_position.x - 2 then
+                 underground_exit_x_position = underground_exit_x_position + 1
+            end
+
             args.put{name="express-underground-belt", position={underground_exit_x_position, y_position + 1}, type="output", direction=east}
         end
 
-        local underground_exit_direction = (y_position + 1 == -args.crafting_entity_size or y_position == args.crafting_entity_size) and north or east
-        args.put{name="express-transport-belt", position={args.input_item_position.x - 1, y_position + 1}, direction=underground_exit_direction}
+        if covering_multiple then
+            args.put{name="express-transport-belt", position={args.input_item_position.x - 1, y_position + 1}, direction=north}
+        end
 
         for j = 1, y_offset do
             if j == y_offset then
@@ -152,6 +176,11 @@ local function _place_multiple_item_rows(args)
                 args.put{name="express-transport-belt", position={args.input_item_position.x - 1, y_position + 1 - j}, direction=north}
             end
         end
+    end
+
+    if args.electric_pole then
+        local electric_pole_position = common.add_positions(args.input_item_positions[2], {-2, 0})
+        args.put{name=args.electric_pole.name, position=electric_pole_position}
     end
 end
 
@@ -178,6 +207,9 @@ function input.create_layout(args)
     args.crafting_entity_size = common.get_half_length(args.crafting_entity.bounding_box)
     args.input_fluid_positions = common.get_fluid_connection_positions(args.crafting_entity, args.position, "input")
     args.input_item_positions = common.get_item_inserter_positions(args.crafting_entity_size, args.input_fluid_positions, "input")
+
+    local should_use_electric_pole = args.parity == "odd" or prototypes.entity["medium-electric-pole"].get_supply_area_distance() < common.get_length(args.crafting_entity.bounding_box)
+    args.electric_pole = should_use_electric_pole and prototypes.entity["medium-electric-pole"] or nil
 
     local ingredient_data = common.get_component_data(args.recipe.ingredients)
     util.insert_all(args, ingredient_data)
