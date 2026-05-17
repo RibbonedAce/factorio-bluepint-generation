@@ -85,7 +85,7 @@ end
 
 function blueprint.generate_blueprint(player, recipe_args)
     local m_recipe = player.force.recipes[recipe_args.recipe]
-    local m_num_crafting = recipe_args.quantity and recipe_args.quantity or 1
+    local m_num_crafting = recipe_args.quantity or 1
 
     local layout = _create_layouts(m_recipe, m_num_crafting)
     _create_blueprint(player)

@@ -18,7 +18,7 @@ local function _add_main_content(args)
     local main_flow = args.frame.add{type="flow", direction="vertical"}
     main_flow.style.size = {args.size[1] - 24, args.size[2] - 32 - 40 - 8 - 24}
 
-    local placeholder_recipe = args.memory_storage.recipe and args.memory_storage.recipe or "iron-plate"
+    local placeholder_recipe = args.memory_storage.recipe or "iron-plate"
     local recipe_button = main_flow.add{type="choose-elem-button", name="bpgn_recipe_button", elem_type="recipe", recipe=placeholder_recipe, style="slot_button"}
     args.gui_storage.recipe_button = recipe_button
 
