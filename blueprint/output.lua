@@ -15,7 +15,7 @@ local function _place_single_fluid_row(args)
 end
 
 local function _place_multiple_fluid_rows(args)
-   for i, m_position in ipairs(args.output_fluid_positions) do
+   for i, m_position in ipairs(args.fluid_positions) do
        local x_position = m_position.x
 
        for j = 0, i - 1 do
@@ -54,20 +54,20 @@ local function _place_fluid_rows(args)
 end
 
 local function _place_single_item_row(args)
-    args.output_index = args.parity == "even" and 1 or #args.output_item_positions
-    args.output_item_position = args.output_item_positions[args.output_index]
+    args.output_index = args.parity == "even" and 1 or #args.item_positions
+    args.output_item_position = args.item_positions[args.output_index]
 
-    args.put{name="inserter", position=args.output_item_position, direction=west}
+    args.put{name="bulk-inserter", position=args.output_item_position, direction=west}
 
     for i = -args.crafting_entity_size, args.crafting_entity_size do
         args.put{name="express-transport-belt", position={args.crafting_entity_size + 2, i}, direction=north}
     end
 
     if args.electric_pole then
-        if #args.output_item_positions == 1 then
-            args.put{name=args.electric_pole.name, position=common.add_positions(args.output_item_positions, {2, 0})}
+        if #args.item_positions == 1 then
+            args.put{name=args.electric_pole.name, position=common.add_positions(args.item_positions, {2, 0})}
         else
-            args.put{name=args.electric_pole.name, position=args.output_item_positions[#args.output_item_positions - 1]}
+            args.put{name=args.electric_pole.name, position=args.item_positions[#args.item_positions - 1]}
         end
     end
 end
@@ -103,16 +103,7 @@ local function _place_item_rows(args)
 end
 
 function output.create_layout(args)
-    args.put = common.put(args)
-    args.crafting_entity_size = common.get_half_length(args.crafting_entity.bounding_box)
-    args.output_fluid_positions = common.get_fluid_connection_positions(args.crafting_entity, args.position, "output")
-    args.output_item_positions = common.get_item_inserter_positions(args.crafting_entity_size, args.output_fluid_positions, "output")
-
-    local should_use_electric_pole = args.parity == "odd" or prototypes.entity["medium-electric-pole"].get_supply_area_distance() < common.get_length(args.crafting_entity.bounding_box)
-    args.electric_pole = should_use_electric_pole and prototypes.entity["medium-electric-pole"] or nil
-
-    local product_data = common.get_component_data(args.recipe.products)
-    util.insert_all(args, product_data)
+    common.setup_args(args, {components=args.recipe.products, flow_direction="output"})
 
     _place_fluid_rows(args)
     _place_item_rows(args)

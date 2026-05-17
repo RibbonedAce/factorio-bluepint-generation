@@ -21,7 +21,7 @@ local function _place_single_fluid_row(args)
 end
 
 local function _place_multiple_fluid_rows(args)
-    for i, m_position in ipairs(args.input_fluid_positions) do
+    for i, m_position in ipairs(args.fluid_positions) do
         local x_position = m_position.x - args.fluid_row_offset
 
         for j = 0, i - 1 do
@@ -48,7 +48,7 @@ local function _place_multiple_fluid_rows(args)
 end
 
 local function _place_pipe_trench(args)
-   for _, m_position in ipairs(args.input_fluid_positions) do
+   for _, m_position in ipairs(args.fluid_positions) do
        args.put{name="pipe-to-ground", position=m_position, direction=east}
 
        local x_position = m_position.x - args.fluid_row_offset + 1
@@ -89,7 +89,7 @@ local function _get_input_filters(entity, items)
 end
 
 local function _place_single_item_row(args)
-    args.put{name="inserter", position=args.input_item_position, filters=args.input_filters, direction=west}
+    args.put{name="bulk-inserter", position=args.input_item_position, filters=args.input_filters, direction=west}
     local x_position = -1 * (args.crafting_entity_size + 2)
 
     for i = -args.crafting_entity_size, args.crafting_entity_size do
@@ -97,17 +97,17 @@ local function _place_single_item_row(args)
     end
 
     if args.electric_pole then
-        if #args.input_item_positions == 1 then
+        if #args.item_positions == 1 then
             args.put{name=args.electric_pole.name, position=common.add_positions(args.input_item_position, {-2, 0})}
         else
-            args.put{name=args.electric_pole.name, position=args.input_item_positions[#args.input_item_positions - 1]}
+            args.put{name=args.electric_pole.name, position=args.item_positions[#args.item_positions - 1]}
         end
     end
 end
 
 local function _place_double_item_rows(args)
-    args.put{name="inserter", position=args.input_item_positions[#args.input_item_positions - (args.input_index - 1)], filters=args.input_filters, direction=west}
-    args.put{name="inserter", position=args.input_item_position, filters=args.input_filters, direction=west}
+    args.put{name="bulk-inserter", position=args.item_positions[#args.item_positions - (args.input_index - 1)], filters=args.input_filters, direction=west}
+    args.put{name="bulk-inserter", position=args.input_item_position, filters=args.input_filters, direction=west}
 
     for j = -args.crafting_entity_size, args.crafting_entity_size do
         if j == args.input_item_position.y - 1 then
@@ -125,20 +125,20 @@ local function _place_double_item_rows(args)
     end
 
     if args.electric_pole then
-        if #args.input_item_positions == 2 then
-            args.put{name=args.electric_pole.name, position=common.add_positions(args.input_item_positions[2], {-3, 0})}
+        if #args.item_positions == 2 then
+            args.put{name=args.electric_pole.name, position=common.add_positions(args.item_positions[2], {-3, 0})}
         else
-            args.put{name=args.electric_pole.name, position=args.input_item_positions[#args.input_item_positions - 1]}
+            args.put{name=args.electric_pole.name, position=args.item_positions[#args.item_positions - 1]}
         end
     end
 end
 
 local function _place_multiple_item_rows(args)
     for i = 1, args.num_item_rows do
-        args.input_index = args.parity == "even" and i or #args.input_item_positions - (i - 1)
-        args.input_item_position = args.input_item_positions[args.input_index]
+        args.input_index = args.parity == "even" and i or #args.item_positions - (i - 1)
+        args.input_item_position = args.item_positions[args.input_index]
 
-        args.put{name="inserter", position=args.input_item_position, filters=args.input_filters, direction=west}
+        args.put{name="bulk-inserter", position=args.input_item_position, filters=args.input_filters, direction=west}
         local x_position = args.input_item_position.x - 3 * i
         local y_offset = args.input_item_position.y == args.crafting_entity_size and 1 or 0
         local y_position = args.input_item_position.y + y_offset - 1
@@ -179,7 +179,7 @@ local function _place_multiple_item_rows(args)
     end
 
     if args.electric_pole then
-        local electric_pole_position = common.add_positions(args.input_item_positions[2], {-2, 0})
+        local electric_pole_position = common.add_positions(args.item_positions[2], {-2, 0})
         args.put{name=args.electric_pole.name, position=electric_pole_position}
     end
 end
@@ -189,8 +189,8 @@ local function _place_item_rows(args)
         return
     end
 
-    args.input_index = args.parity == "even" and 1 or #args.input_item_positions
-    args.input_item_position = args.input_item_positions[args.input_index]
+    args.input_index = args.parity == "even" and 1 or #args.item_positions
+    args.input_item_position = args.item_positions[args.input_index]
     args.input_filters = _get_input_filters(args.crafting_entity, args.items)
 
     if args.num_item_rows == 1 then
@@ -203,16 +203,7 @@ local function _place_item_rows(args)
 end
 
 function input.create_layout(args)
-    args.put = common.put(args)
-    args.crafting_entity_size = common.get_half_length(args.crafting_entity.bounding_box)
-    args.input_fluid_positions = common.get_fluid_connection_positions(args.crafting_entity, args.position, "input")
-    args.input_item_positions = common.get_item_inserter_positions(args.crafting_entity_size, args.input_fluid_positions, "input")
-
-    local should_use_electric_pole = args.parity == "odd" or prototypes.entity["medium-electric-pole"].get_supply_area_distance() < common.get_length(args.crafting_entity.bounding_box)
-    args.electric_pole = should_use_electric_pole and prototypes.entity["medium-electric-pole"] or nil
-
-    local ingredient_data = common.get_component_data(args.recipe.ingredients)
-    util.insert_all(args, ingredient_data)
+    common.setup_args(args, {components=args.recipe.ingredients, flow_direction="input"})
 
     _place_fluid_rows(args)
     _place_item_rows(args)

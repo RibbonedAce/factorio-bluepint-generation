@@ -1,5 +1,7 @@
 package.path = "../?.lua"
 
+local util = require("util")
+
 
 local common = {}
 
@@ -224,6 +226,20 @@ function common.put(args)
     end
 
     return put
+end
+
+function common.setup_args(args, meta_args)
+    args.put = common.put(args)
+    args.crafting_entity_size = common.get_half_length(args.crafting_entity.bounding_box)
+    args.fluid_positions = common.get_fluid_connection_positions(args.crafting_entity, args.position, meta_args.flow_direction)
+    args.item_positions = common.get_item_inserter_positions(args.crafting_entity_size, args.fluid_positions, meta_args.flow_direction)
+
+    local should_use_electric_pole = args.parity == "odd"
+            or prototypes.entity["medium-electric-pole"].get_supply_area_distance() < common.get_length(args.crafting_entity.bounding_box)
+    args.electric_pole = should_use_electric_pole and prototypes.entity["medium-electric-pole"] or nil
+
+    local ingredient_data = common.get_component_data(meta_args.components)
+    util.insert_all(args, ingredient_data)
 end
 
 return common
