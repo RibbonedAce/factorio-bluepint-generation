@@ -78,7 +78,7 @@ local function _place_electric_poles_without_inserters(args)
 
         for x = 1, math.floor(args.electric_pole.get_supply_area_distance()) do
             for y = -args.crafting_entity_size, args.crafting_entity_size do
-                local candidate_position = Position.from({x, y}) + {args.crafting_entity_size, 0} + args.position + {0.5, 0.5}
+                local candidate_position = Position.from{x, y} + {args.crafting_entity_size, 0} + args.position + {0.5, 0.5}
 
                 local entities_in_area = game.surfaces[1].find_entities({
                     candidate_position - {electric_pole_length, electric_pole_length},

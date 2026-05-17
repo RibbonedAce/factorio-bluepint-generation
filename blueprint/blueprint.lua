@@ -19,7 +19,7 @@ local function _create_layout(args)
 
     local crafting_entity = common.put(args){
         name=args.name,
-        position=Position.from({0, 0}),
+        position=Position.from{0, 0},
         modules=args.modules,
         recipe=args.recipe.name,
         direction=args.direction,
@@ -46,7 +46,7 @@ local function _create_layouts(recipe, num_crafting)
     local crafting_direction = crafting_entity_name == "oil-refinery" and east or west
 
     for i = 1, num_crafting do
-        local relative_position = Position.from({x=0, y=(i - 1) * crafting_entity_size})
+        local relative_position = Position.from{0, (i - 1) * crafting_entity_size}
         local parity = i % 2 == 0 and "even" or "odd"
         local placing = i == 1 and "first"
                 or i == num_crafting and "last"

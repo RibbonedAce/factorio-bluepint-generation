@@ -81,7 +81,7 @@ function common.get_item_inserter_positions(entity_size, fluid_positions, direct
     local x_multiplier = direction == "output" and 1 or -1
 
     for i = -entity_size, entity_size do
-        local position = Position.from{x=x_multiplier * (entity_size + 1), y=i}
+        local position = Position.from{x_multiplier * (entity_size + 1), i}
         local already_fluid_position = false
 
         for _, fluid_position in ipairs(fluid_positions) do
