@@ -19,7 +19,7 @@ local function _create_layout(args)
 
     local crafting_entity = common.put(args){
         name=args.name,
-        position=Position.from{0, 0},
+        position={0, 0},
         modules=args.modules,
         recipe=args.recipe.name,
         direction=args.direction,
