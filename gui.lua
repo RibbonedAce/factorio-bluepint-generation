@@ -3,6 +3,35 @@ local memory = require("memory")
 
 local gui = {}
 
+local function _update_item(storage, recipe, stored_item)
+    if storage.item_button then
+        storage.item_button.destroy()
+        storage.item_button = nil
+    end
+
+    local products = prototypes.recipe[recipe].products
+    local filters = {}
+    local can_use_stored_item = false
+
+    for _, product in ipairs(products) do
+        table.insert(filters, product.name)
+        if stored_item == product.name then
+            can_use_stored_item = true
+        end
+    end
+
+    storage.item_button = storage.recipe_button.parent.add{
+        type="choose-elem-button",
+        name="bpgn_item_button",
+        elem_type=products[1].type,
+        item=can_use_stored_item and stored_item or filters[1],
+        fluid=can_use_stored_item and stored_item or filters[1],
+        style="slot_button",
+        elem_filters = {{filter="name", name=filters}},
+        enabled = #filters > 1
+    }
+end
+
 local function _add_header(args)
     local header = args.frame.add{type="flow", direction="horizontal", style="bpgn_header"}
     header.style.size = {args.size[1] - 24, 32}
@@ -18,13 +47,16 @@ local function _add_main_content(args)
     local main_flow = args.frame.add{type="flow", direction="vertical"}
     main_flow.style.size = {args.size[1] - 24, args.size[2] - 32 - 40 - 8 - 24}
 
+    local recipe_flow = main_flow.add{type="flow", direction="horizontal"}
+    recipe_flow.style.padding = 2
+
     local placeholder_recipe = args.memory_storage.recipe or "iron-plate"
-    local recipe_button = main_flow.add{type="choose-elem-button", name="bpgn_recipe_button", elem_type="recipe", recipe=placeholder_recipe, style="slot_button"}
-    args.gui_storage.recipe_button = recipe_button
+    args.gui_storage.recipe_button = recipe_flow.add{type="choose-elem-button", name="bpgn_recipe_button", elem_type="recipe", recipe=placeholder_recipe, style="slot_button"}
+
+    _update_item(args.gui_storage, placeholder_recipe, args.memory_storage.item)
 
     local placeholder_quantity = args.memory_storage.quantity and tostring(args.memory_storage.quantity) or "1"
-    local quantity_text = main_flow.add{type="textfield", name="bpgn_quantity_text", text=placeholder_quantity, numeric=true, allow_decimal=false, allow_negative=false}
-    args.gui_storage.quantity_text = quantity_text
+    args.gui_storage.quantity_text = main_flow.add{type="textfield", name="bpgn_quantity_text", text=placeholder_quantity, numeric=true, allow_decimal=false, allow_negative=false}
 
     return main_flow
 end
@@ -46,7 +78,11 @@ local function _init(player_index)
         storage.bpgn_gui = {}
     end
 
-    storage.bpgn_gui[player_index] = {recipe_button=nil, quantity_text=nil}
+    storage.bpgn_gui[player_index] = {recipe_button=nil, item_button=nil, quantity_text=nil}
+end
+
+function gui.update_item(player_index, recipe)
+    _update_item(storage.bpgn_gui[player_index], recipe)
 end
 
 function gui.get_recipe_data(player)
