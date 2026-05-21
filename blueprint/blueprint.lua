@@ -35,7 +35,7 @@ local function _create_layout(args)
     output.create_layout(args)
 end
 
-local function _create_layouts(recipe, product, requested_rate)
+local function _create_layouts(recipe, product, requested_rate, force)
     local created_entities = {}
 
     local crafting_entity_name = recipe.has_category("smelting") and "electric-furnace"
@@ -68,36 +68,50 @@ local function _create_layouts(recipe, product, requested_rate)
             modules=crafting_modules,
             parity=parity,
             placing=placing,
-            skeleton=blueprint_skeleton
+            skeleton=blueprint_skeleton,
+            force=force
         }
     end
 
     return created_entities
 end
 
-local function _create_blueprint(player)
+local function _create_blueprint(player, entities, force)
+    local left_top = Position.from(entities[1].position)
+    local right_bottom = Position.from(entities[1].position)
+
+    for _, entity in ipairs(entities) do
+        left_top.x = math.min(left_top.x, entity.position.x)
+        left_top.y = math.min(left_top.y, entity.position.y)
+        right_bottom.x = math.max(right_bottom.x, entity.position.x)
+        right_bottom.y = math.max(right_bottom.y, entity.position.y)
+    end
+
     local player_stack = player.cursor_stack
     player_stack.set_stack("blueprint")
-    player_stack.create_blueprint{surface=game.surfaces[1], force="player", area={left_top={-100, -100}, right_bottom={100, 100}}}
+    player_stack.create_blueprint{surface=game.surfaces[1], force=force, area={left_top, right_bottom}}
     player_stack.label = "Blueprint"
 
     player.add_to_clipboard(player_stack)
     player.activate_paste()
 end
 
-local function _remove_layout(layout)
+local function _remove_layout(layout, force)
     for _, entity in ipairs(layout) do
         entity.destroy()
     end
+
+    game.merge_forces(force, "player")
 end
 
 function blueprint.generate_blueprint(player, recipe_args)
     local recipe = player.force.recipes[recipe_args.recipe]
     local output_rate = recipe_args.rate or -1
+    local temp_force = game.create_force("bpgn_force")
 
-    local layout = _create_layouts(recipe, recipe_args.product, output_rate)
-    _create_blueprint(player)
-    _remove_layout(layout)
+    local layout = _create_layouts(recipe, recipe_args.product, output_rate, temp_force)
+    _create_blueprint(player, layout, temp_force)
+    _remove_layout(layout, temp_force)
 end
 
 return blueprint

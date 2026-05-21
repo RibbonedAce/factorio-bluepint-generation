@@ -166,7 +166,7 @@ function common.create_ghost_entity(args)
         filters=m_filters,
         use_filters=m_filters ~= nil,
         name="entity-ghost",
-        force="player",
+        force=args.force,
         recipe=args.recipe,
         type=args.type,
         output_priority=args.output_priority,
@@ -183,6 +183,8 @@ end
 function common.put(args)
     local function put(i_args)
         i_args.position = Position.from(i_args.position) + args.position
+        i_args.force = args.force
+
         local new_entity = common.create_ghost_entity(i_args)
         table.insert(args.created_entities, new_entity)
         return new_entity
