@@ -48,8 +48,8 @@ script.on_event(defines.events.on_gui_elem_changed, function(event)
 end)
 
 script.on_event(defines.events.on_gui_text_changed, function(event)
-    if event.element and event.element.name == "bpgn_quantity_text" then
-        memory.save(event.player_index, "quantity", tonumber(event.element.text))
+    if event.element and event.element.name == "bpgn_rate_text" then
+        memory.save(event.player_index, "rate", tonumber(event.element.text))
     end
 end)
 

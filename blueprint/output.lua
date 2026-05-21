@@ -57,10 +57,10 @@ local function _place_single_item_row(args)
     args.output_index = args.parity == "even" and 1 or #args.item_positions
     args.output_item_position = args.item_positions[args.output_index]
 
-    args.put{name="bulk-inserter", position=args.output_item_position, direction=west}
+    args.put{name=args.inserters[1], position=args.output_item_position, direction=west}
 
     for i = -args.crafting_entity_size, args.crafting_entity_size do
-        args.put{name="express-transport-belt", position={args.crafting_entity_size + 2, i}, direction=north}
+        args.put{name=args.belts[1].normal, position={args.crafting_entity_size + 2, i}, direction=north}
     end
 
     if args.electric_pole then

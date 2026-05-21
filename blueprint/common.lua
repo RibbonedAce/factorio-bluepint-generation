@@ -174,8 +174,7 @@ function common.create_ghost_entity(args)
     }
 
     if args.modules then
-        local m_modules = {unpack(args.modules, 1, entity.ghost_prototype.module_inventory_size)}
-        entity.insert_plan = _to_inventory_positions(m_modules, defines.inventory.crafter_modules)
+        entity.insert_plan = _to_inventory_positions(args.modules, defines.inventory.crafter_modules)
     end
 
     return entity
@@ -197,6 +196,13 @@ function common.setup_args(args, meta_args)
     args.crafting_entity_size = common.get_half_length(args.crafting_entity.bounding_box)
     args.fluid_positions = common.get_fluid_connection_positions(args.crafting_entity, args.position, meta_args.flow_direction)
     args.item_positions = common.get_item_inserter_positions(args.crafting_entity_size, args.fluid_positions, meta_args.flow_direction)
+
+    args.belts = {}
+    args.inserters = {}
+    for _, skeleton_entry in pairs(args.skeleton[meta_args.flow_direction]) do
+        table.insert(args.belts, skeleton_entry.belt)
+        table.insert(args.inserters, skeleton_entry.inserter)
+    end
 
     local should_use_electric_pole = args.parity == "odd"
             or prototypes.entity["medium-electric-pole"].get_supply_area_distance() < common.get_length(args.crafting_entity.bounding_box)

@@ -28,7 +28,8 @@ local function _update_item(storage, recipe, stored_item)
         fluid=can_use_stored_item and stored_item or filters[1],
         style="slot_button",
         elem_filters = {{filter="name", name=filters}},
-        enabled = #filters > 1
+        enabled = #filters > 1,
+        visible = #filters > 1
     }
 end
 
@@ -55,8 +56,8 @@ local function _add_main_content(args)
 
     _update_item(args.gui_storage, placeholder_recipe, args.memory_storage.item)
 
-    local placeholder_quantity = args.memory_storage.quantity and tostring(args.memory_storage.quantity) or "1"
-    args.gui_storage.quantity_text = main_flow.add{type="textfield", name="bpgn_quantity_text", text=placeholder_quantity, numeric=true, allow_decimal=false, allow_negative=false}
+    local placeholder_rate = args.memory_storage.rate and tostring(args.memory_storage.rate) or "1"
+    args.gui_storage.rate_text = main_flow.add{type="textfield", name="bpgn_rate_text", text=placeholder_rate, numeric=true, allow_decimal=true, allow_negative=false}
 
     return main_flow
 end
@@ -78,7 +79,7 @@ local function _init(player_index)
         storage.bpgn_gui = {}
     end
 
-    storage.bpgn_gui[player_index] = {recipe_button=nil, item_button=nil, quantity_text=nil}
+    storage.bpgn_gui[player_index] = {recipe_button=nil, item_button=nil, rate_text=nil}
 end
 
 function gui.update_item(player_index, recipe)
@@ -88,13 +89,16 @@ end
 function gui.get_recipe_data(player)
     local player_gui = storage.bpgn_gui[player.index]
 
-    local button_element = player_gui.recipe_button
-    local m_recipe = button_element and button_element.elem_value or nil
+    local recipe_element = player_gui.recipe_button
+    local m_recipe = recipe_element and recipe_element.elem_value or nil
 
-    local text_element = player_gui.quantity_text
-    local m_quantity = text_element and tonumber(text_element.text) or 1
+    local product_element = player_gui.item_button
+    local m_product = product_element and product_element.elem_value or nil
 
-    return {recipe=m_recipe, quantity=m_quantity}
+    local text_element = player_gui.rate_text
+    local m_rate = text_element and tonumber(text_element.text) or 1
+
+    return {recipe=m_recipe, product=m_product, rate=m_rate}
 end
 
 function gui.destroy(player)

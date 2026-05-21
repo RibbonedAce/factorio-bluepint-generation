@@ -6,7 +6,7 @@ function memory.init(player_index)
     end
 
     if not storage.bpgn_memory[player_index] then
-        storage.bpgn_memory[player_index] = {recipe="iron-plate", item="iron-plate", quantity=1}
+        storage.bpgn_memory[player_index] = {recipe="iron-plate", item="iron-plate", rate=1}
     end
 end
 

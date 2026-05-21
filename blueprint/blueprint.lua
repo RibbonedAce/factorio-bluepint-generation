@@ -5,13 +5,16 @@ local output = require("blueprint.output")
 local util = require("util")
 local common = require("blueprint.common")
 local Position = require("metatables.Position")
+local rates = require("rates")
 
 
 local blueprint = {}
 
-local function _determine_modules_from_recipe(recipe)
-    return recipe.group.name == "intermediate-products" and {"productivity-module-3", "productivity-module-3", "productivity-module-3", "productivity-module-3"}
+local function _determine_modules(recipe, crafting_entity_name)
+    local base_modules = recipe.group.name == "intermediate-products" and {"productivity-module-3", "productivity-module-3", "productivity-module-3", "productivity-module-3"}
             or {"efficiency-module-3", "efficiency-module-3", "efficiency-module-3", "speed-module-3"}
+
+    return {unpack(base_modules, 1, prototypes.entity[crafting_entity_name].module_inventory_size)}
 end
 
 local function _create_layout(args)
@@ -32,15 +35,19 @@ local function _create_layout(args)
     output.create_layout(args)
 end
 
-local function _create_layouts(recipe, num_crafting)
+local function _create_layouts(recipe, product, requested_rate)
     local created_entities = {}
 
-    local crafting_modules = _determine_modules_from_recipe(recipe)
     local crafting_entity_name = recipe.has_category("smelting") and "electric-furnace"
             or recipe.has_category("chemistry") and "chemical-plant"
             or recipe.has_category("centrifuging") and "centrifuge"
             or recipe.has_category("oil-processing") and "oil-refinery"
             or "assembling-machine-3"
+    local crafting_modules = _determine_modules(recipe, crafting_entity_name)
+
+    local output_rate = rates.get_output_rate(recipe, product, prototypes.entity[crafting_entity_name], crafting_modules)
+    local num_crafting = math.ceil(requested_rate / output_rate)
+    local blueprint_skeleton = rates.get_skeleton(recipe, crafting_modules, requested_rate / num_crafting)
 
     local crafting_entity_size = common.get_length(prototypes.entity[crafting_entity_name].selection_box)
     local crafting_direction = crafting_entity_name == "oil-refinery" and east or west
@@ -60,7 +67,8 @@ local function _create_layouts(recipe, num_crafting)
             direction=crafting_direction,
             modules=crafting_modules,
             parity=parity,
-            placing=placing
+            placing=placing,
+            skeleton=blueprint_skeleton
         }
     end
 
@@ -84,10 +92,10 @@ local function _remove_layout(layout)
 end
 
 function blueprint.generate_blueprint(player, recipe_args)
-    local m_recipe = player.force.recipes[recipe_args.recipe]
-    local m_num_crafting = recipe_args.quantity or 1
+    local recipe = player.force.recipes[recipe_args.recipe]
+    local output_rate = recipe_args.rate or -1
 
-    local layout = _create_layouts(m_recipe, m_num_crafting)
+    local layout = _create_layouts(recipe, recipe_args.product, output_rate)
     _create_blueprint(player)
     _remove_layout(layout)
 end
