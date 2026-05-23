@@ -4,6 +4,10 @@ local Position = {}
 Position.mt = {}
 
 function Position.from(table)
+    if not table then
+        error("No table passed to make position")
+    end
+
     if getmetatable(table) == Position.mt then
         return table
     end

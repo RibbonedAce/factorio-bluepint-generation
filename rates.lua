@@ -56,21 +56,6 @@ local function _get_best_inserter(rate, belt_speed)
     return inserters[#inserters]
 end
 
-function rates.get_input_rates(recipe, crafting_entity, modules)
-    local result = {}
-
-    local module_effects = _combine_effects(modules)
-    local base_rate = crafting_entity.get_crafting_speed()
-            * (1 + module_effects.speed)
-            / recipe.energy
-
-    for _, ingredient in ipairs(recipe.ingredients) do
-        result[ingredient.name] = base_rate * ingredient.amount
-    end
-
-    return result
-end
-
 function rates.get_output_rate(recipe, product, crafting_entity, modules)
     local module_effects = _combine_effects(modules)
     local base_rate = crafting_entity.get_crafting_speed()
@@ -85,6 +70,24 @@ function rates.get_output_rate(recipe, product, crafting_entity, modules)
     end
 
     error("Could not find product for recipe: " .. product .. ", " .. recipe)
+end
+
+function rates.get_input_rates(recipe, product, crafting_entity, modules, product_rate)
+    local result = {}
+
+    local module_effects = _combine_effects(modules)
+    local base_rate = crafting_entity.get_crafting_speed()
+            * (1 + module_effects.speed)
+            / recipe.energy
+
+    local output_rate = rates.get_output_rate(recipe, product, crafting_entity, modules)
+    local relative_rate = product_rate / output_rate
+
+    for _, ingredient in ipairs(recipe.ingredients) do
+        result[ingredient.name] = base_rate * ingredient.amount * relative_rate
+    end
+
+    return result
 end
 
 function rates.get_skeleton(recipe, modules, output_rate)
