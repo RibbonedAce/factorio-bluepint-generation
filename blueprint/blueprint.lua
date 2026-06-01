@@ -20,23 +20,24 @@ end
 local function _create_layout(args)
     local m_mirror = args.parity == "even" and "vertical" or nil
 
-    local crafting_entity = common.put(args){
+    local crafting_entity = common.plan_put(args){
         name=args.name,
         position={0, 0},
         modules=args.modules,
         recipe=args.recipe.name,
-        direction=args.direction,
+        direction=args.machine_direction,
         mirror=m_mirror
     }
 
-    args.crafting_entity = crafting_entity
+    args.crafting_entity = prototypes.entity[args.name]
 
     input.create_layout(args)
     output.create_layout(args)
 end
 
-local function _create_layouts(recipe, product, requested_rate, force)
-    local created_entities = {}
+local function _create_layouts(recipe, product, requested_rate)
+    local planned_entities = {}
+    local planned_positions = {}
 
     local crafting_entity_name = recipe.has_category("smelting") and "electric-furnace"
             or recipe.has_category("chemistry") and "chemical-plant"
@@ -50,7 +51,8 @@ local function _create_layouts(recipe, product, requested_rate, force)
     local blueprint_skeleton = rates.get_skeleton(recipe, crafting_modules, requested_rate / num_crafting)
 
     local crafting_entity_size = common.get_length(prototypes.entity[crafting_entity_name].selection_box)
-    local crafting_direction = crafting_entity_name == "oil-refinery" and east or west
+    local crafting_direction = west
+    local machine_direction = crafting_entity_name == "oil-refinery" and east or west
 
     for i = 1, num_crafting do
         local relative_position = Position.from{0, (i - 1) * crafting_entity_size}
@@ -60,23 +62,24 @@ local function _create_layouts(recipe, product, requested_rate, force)
                 or "middle"
 
         _create_layout{
-            created_entities=created_entities,
+            planned_entities=planned_entities,
+            planned_positions=planned_positions,
             recipe=recipe,
             name=crafting_entity_name,
             position=relative_position,
-            direction=crafting_direction,
+            crafting_direction=crafting_direction,
+            machine_direction=machine_direction,
             modules=crafting_modules,
             parity=parity,
             placing=placing,
-            skeleton=blueprint_skeleton,
-            force=force
+            skeleton=blueprint_skeleton
         }
     end
 
-    return created_entities
+    return {entities=planned_entities, positions=planned_positions}
 end
 
-local function _create_blueprint(player, entities, force)
+local function _create_blueprint(player, entities)
     local left_top = Position.from(entities[1].position)
     local right_bottom = Position.from(entities[1].position)
 
@@ -89,29 +92,27 @@ local function _create_blueprint(player, entities, force)
 
     local player_stack = player.cursor_stack
     player_stack.set_stack("blueprint")
-    player_stack.create_blueprint{surface=game.surfaces[1], force=force, area={left_top, right_bottom}}
+    player_stack.create_blueprint{surface=game.surfaces[1], force=player.force, area={left_top, right_bottom}}
     player_stack.label = "Blueprint"
 
     player.add_to_clipboard(player_stack)
     player.activate_paste()
 end
 
-local function _remove_layout(layout, force)
+local function _remove_layout(layout)
     for _, entity in ipairs(layout) do
         entity.destroy()
     end
-
-    game.merge_forces(force, "player")
 end
 
 function blueprint.generate_blueprint(player, recipe_args)
     local recipe = player.force.recipes[recipe_args.recipe]
     local output_rate = recipe_args.rate or -1
-    local temp_force = game.create_force("bpgn_force")
 
-    local layout = _create_layouts(recipe, recipe_args.product, output_rate, temp_force)
-    _create_blueprint(player, layout, temp_force)
-    _remove_layout(layout, temp_force)
+    local planned_layout = _create_layouts(recipe, recipe_args.product, output_rate)
+    local actual_layout = common.actual_put(planned_layout.entities)
+    _create_blueprint(player, actual_layout)
+    _remove_layout(actual_layout)
 end
 
 return blueprint

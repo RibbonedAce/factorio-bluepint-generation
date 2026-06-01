@@ -6,6 +6,11 @@ local Position = require("metatables.Position")
 
 local common = {}
 
+local function _vector_in_direction(direction)
+    local radians = math.pi * ((direction / -8) + 0.5)
+    return Position.from{math.cos(radians), math.sin(radians)}
+end
+
 local function _to_inventory_positions(items_array, inventory_slot)
     local inventory_positions = {}
     local dict = {}
@@ -31,42 +36,33 @@ local function _to_inventory_positions(items_array, inventory_slot)
     return inventory_positions
 end
 
-local function _flip_entities(entities)
-    if not entities or not #entities or #entities == 0 then
-        return
-    end
+function common.get_fluid_connection_positions(flow_direction, components, args)
+    local fluid_positions = {}
 
-    local top = entities[1].selection_box.left_top.y
-    local bottom = entities[1].selection_box.right_bottom.y
-
-    for _, entity in ipairs(entities) do
-        top = math.min(top, entity.selection_box.left_top.y)
-        bottom = math.max(bottom, entity.selection_box.right_bottom.y)
-    end
-
-    local entities = game.surfaces[1].find_entities(area)
-
-    for _, entity in ipairs(entities) do
-        local new_y_position = bottom + top - entity.position.y
-        entity.teleport({x=entity.position.x, y=new_y_position})
-        entity.mirroring = not entity.mirroring
-
-        if entity.direction == north or entity.direction == south then
-            entity.rotate()
-            entity.rotate()
+    local has_fluid = false
+    for _, component in ipairs(components) do
+        if component.type == "fluid" then
+            has_fluid = true
+            break
         end
     end
-end
 
-function common.get_fluid_connection_positions(entity, position, direction)
-    local fluid_positions = {}
-    local fluidbox = entity.fluidbox
+    if not has_fluid then
+        return fluid_positions
+    end
 
-    for i = 1, #fluidbox do
-        for _, pipe in ipairs(fluidbox.get_pipe_connections(i)) do
-            if pipe.flow_direction == direction then
-                local abs_fluid_position = Position.from(pipe.target_position) - {0.5, 0.5}
-                local fluid_position = abs_fluid_position - position
+    local fluidboxes = args.crafting_entity.fluidbox_prototypes
+
+    for i = 1, #fluidboxes do
+        local fluidbox = args.parity == "even" and fluidboxes[#fluidboxes - i + 1] or fluidboxes[i]
+        local pipes = fluidbox.pipe_connections
+
+        for j = 1, #pipes do
+            local pipe = args.parity == "even " and pipes[#pipes - j + 1] or pipes[j]
+
+            if pipe.flow_direction == flow_direction then
+                local fluid_connection_offset = (flow_direction == "input" and 1 or -1) * _vector_in_direction(args.crafting_direction)
+                local fluid_position = Position.from(pipe.positions[(args.machine_direction / 4) + 1]) + fluid_connection_offset
                 table.insert(fluid_positions, fluid_position)
             end
         end
@@ -124,7 +120,10 @@ function common.get_component_data(components)
 end
 
 function common.get_length(box)
-    return math.max(math.abs(box.left_top.x - box.right_bottom.x), math.abs(box.left_top.y - box.right_bottom.y))
+    return math.max(
+            math.ceil(math.abs(box.left_top.x - box.right_bottom.x)),
+            math.ceil(math.abs(box.left_top.y - box.right_bottom.y))
+    )
 end
 
 function common.get_half_length(box)
@@ -166,7 +165,7 @@ function common.create_ghost_entity(args)
         filters=m_filters,
         use_filters=m_filters ~= nil,
         name="entity-ghost",
-        force=args.force,
+        force="player",
         recipe=args.recipe,
         type=args.type,
         output_priority=args.output_priority,
@@ -180,23 +179,52 @@ function common.create_ghost_entity(args)
     return entity
 end
 
-function common.put(args)
+function common.plan_put(args)
     local function put(i_args)
         i_args.position = Position.from(i_args.position) + args.position
-        i_args.force = args.force
 
-        local new_entity = common.create_ghost_entity(i_args)
-        table.insert(args.created_entities, new_entity)
-        return new_entity
+        local selection_box = prototypes.entity[i_args.name].selection_box
+        local box_dims = Position.from{
+                math.ceil(math.abs(selection_box.left_top.x - selection_box.right_bottom.x)),
+                math.ceil(math.abs(selection_box.left_top.y - selection_box.right_bottom.y))
+        }
+
+        if i_args.direction and i_args.direction % 4 ~= 0 then
+            box_dims = Position.from{box_dims.y, box_dims.x}
+        end
+
+        local planned_box = {
+                {x=math.ceil(i_args.position.x - box_dims.x / 2), y=math.ceil(i_args.position.y - box_dims.y / 2)},
+                {x=math.floor(i_args.position.x + box_dims.x / 2), y=math.floor(i_args.position.y + box_dims.y / 2)},
+        }
+
+        table.insert(args.planned_entities, i_args)
+
+        for x = planned_box[1].x, planned_box[2].x do
+            for y = planned_box[1].y, planned_box[2].y do
+                args.planned_positions[tostring(Position.from{x, y})] = i_args.name
+            end
+        end
     end
 
     return put
 end
 
+function common.actual_put(planned_entities)
+    local actual_entities = {}
+
+    for _, entity in ipairs(planned_entities) do
+        local new_entity = common.create_ghost_entity(entity)
+        table.insert(actual_entities, new_entity)
+    end
+
+    return actual_entities
+end
+
 function common.setup_args(args, meta_args)
-    args.put = common.put(args)
-    args.crafting_entity_size = common.get_half_length(args.crafting_entity.bounding_box)
-    args.fluid_positions = common.get_fluid_connection_positions(args.crafting_entity, args.position, meta_args.flow_direction)
+    args.plan_put = common.plan_put(args)
+    args.crafting_entity_size = common.get_half_length(args.crafting_entity.selection_box)
+    args.fluid_positions = common.get_fluid_connection_positions(meta_args.flow_direction, meta_args.components, args)
     args.item_positions = common.get_item_inserter_positions(args.crafting_entity_size, args.fluid_positions, meta_args.flow_direction)
 
     args.belts = {}
@@ -207,7 +235,7 @@ function common.setup_args(args, meta_args)
     end
 
     local should_use_electric_pole = args.parity == "odd"
-            or prototypes.entity["medium-electric-pole"].get_supply_area_distance() < common.get_length(args.crafting_entity.bounding_box)
+            or prototypes.entity["medium-electric-pole"].get_supply_area_distance() < common.get_length(args.crafting_entity.selection_box)
     args.electric_pole = should_use_electric_pole and prototypes.entity["medium-electric-pole"] or nil
 
     local ingredient_data = common.get_component_data(meta_args.components)
