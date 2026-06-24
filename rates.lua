@@ -56,21 +56,6 @@ local function _get_best_inserter(rate, belt_speed)
     return inserters[#inserters]
 end
 
-function rates.get_input_rates(recipe, crafting_entity, modules)
-    local result = {}
-
-    local module_effects = _combine_effects(modules)
-    local base_rate = crafting_entity.get_crafting_speed()
-            * (1 + module_effects.speed)
-            / recipe.energy
-
-    for _, ingredient in ipairs(recipe.ingredients) do
-        result[ingredient.name] = base_rate * ingredient.amount
-    end
-
-    return result
-end
-
 function rates.get_output_rate(recipe, product, crafting_entity, modules)
     local module_effects = _combine_effects(modules)
     local base_rate = crafting_entity.get_crafting_speed()
@@ -87,48 +72,123 @@ function rates.get_output_rate(recipe, product, crafting_entity, modules)
     error("Could not find product for recipe: " .. product .. ", " .. recipe)
 end
 
-function rates.get_skeleton(recipe, modules, output_rate)
+function rates.get_input_rates(recipe, product, crafting_entity, modules, product_rate)
+    local result = {}
+
+    local module_effects = _combine_effects(modules)
+    local base_rate = crafting_entity.get_crafting_speed()
+            * (1 + module_effects.speed)
+            / recipe.energy
+
+    local output_rate = rates.get_output_rate(recipe, product, crafting_entity, modules)
+    local relative_rate = product_rate / output_rate
+
+    for _, ingredient in ipairs(recipe.ingredients) do
+        result[ingredient.name] = base_rate * ingredient.amount * relative_rate
+    end
+
+    return result
+end
+
+function rates.get_skeleton(recipe, output, modules, output_rate)
     local result = {}
     result.input = {}
     result.output = {}
 
-    local output = recipe.products[1]
-
-    local input_multiplier = output_rate / output.amount / (1 + _combine_effects(modules).productivity)
-    local input_rates = {}
-
-    for _, ingredient in ipairs(recipe.ingredients) do
-        if ingredient.type == "item" then
-            table.insert(input_rates, {name=ingredient.name, rate=ingredient.amount * input_multiplier})
+    local output_amount = 0
+    for _, product in ipairs(recipe.products) do
+        if product.name == output then
+            output_amount = product.amount
+            break
         end
     end
 
-    table.sort(input_rates, function(a, b) return a.rate < b.rate end)
+    local input_multiplier = output_rate / output_amount / (1 + _combine_effects(modules).productivity)
+    local output_multiplier = output_rate / output_amount
 
-    for i = 1, #input_rates, 2 do
-        if i == #input_rates then
-            local current_item = input_rates[i]
+    local item_input_rates = {}
+    local fluid_input_rates = {}
+
+    for _, ingredient in ipairs(recipe.ingredients) do
+        if ingredient.type == "item" then
+            table.insert(item_input_rates, {name=ingredient.name, rate=ingredient.amount * input_multiplier})
+        else
+            table.insert(fluid_input_rates, {name=ingredient.name, rate=ingredient.amount * input_multiplier})
+        end
+    end
+
+    local output_rates = {}
+
+    for _, product in ipairs(recipe.products) do
+        table.insert(output_rates, {name=product.name, rate=product.amount * output_multiplier})
+    end
+
+    table.sort(item_input_rates, function(a, b) return a.rate < b.rate end)
+    table.sort(fluid_input_rates, function(a, b) return a.rate < b.rate end)
+
+    local input_layer = 1
+
+    for i = 1, #item_input_rates, 2 do
+        if i == #item_input_rates then
+            local current_item = item_input_rates[i]
 
             local current_belt = _get_best_transport_belt(current_item.rate)
             local current_inserter = _get_best_inserter(current_item.rate, prototypes.entity[current_belt.normal].belt_speed * 60 * 4)
 
-            result.input[{current_item.name}] = {belt=current_belt, inserter=current_inserter}
+            result.input[current_item.name] = {side="left", layer=input_layer, rate=current_item.rate}
+            result.input[input_layer] = {belt=current_belt, inserter=current_inserter, type="item", items={current_item.name}}
         else
-            local current_item = input_rates[i]
-            local next_item = input_rates[i + 1]
+            local current_item = item_input_rates[i]
+            local next_item = item_input_rates[i + 1]
 
             local current_belt = _get_best_transport_belt(math.max(current_item.rate, next_item.rate))
             local current_inserter = _get_best_inserter(current_item.rate + next_item.rate, prototypes.entity[current_belt.normal].belt_speed * 60 * 4)
 
-            result.input[{current_item.name, next_item.name}] = {belt=current_belt, inserter=current_inserter}
+            result.input[current_item.name] = {side="left", layer=input_layer, rate=current_item.rate}
+            result.input[next_item.name] = {side="right", layer=input_layer, rate=next_item.rate}
+            result.input[input_layer] = {belt=current_belt, inserter=current_inserter, type="item", items={current_item.name, next_item.name}}
         end
+
+        input_layer = input_layer + 1
     end
 
-    if output.type == "item" then
-        local output_belt = _get_best_transport_belt(output_rate)
-        local output_inserter = _get_best_inserter(output_rate, prototypes.entity[output_belt.normal].belt_speed * 60 * 4)
+    for i = 1, #fluid_input_rates do
+        result.input[fluid_input_rates[i].name] = {layer=input_layer, rate=fluid_input_rates[i].rate}
+        result.input[input_layer] = {type="fluid", fluid=fluid_input_rates[i].name}
+        input_layer = input_layer + 1
+    end
 
-        result.output[{output.name}] = {belt=output_belt, inserter=output_inserter}
+    if output.probability < 1 and output.type == "item" then
+        local new_output_names = {}
+        local total_output_rate = 0
+
+        for _, o_rate in ipairs(output_rates) do
+            table.insert(new_output_names, o_rate.name)
+            total_output_rate = total_output_rate + o_rate.rate
+        end
+
+        local output_belt = _get_best_transport_belt(total_output_rate)
+        local output_inserter = _get_best_inserter(total_output_rate, prototypes.entity[output_belt.normal].belt_speed * 60 * 4)
+        
+        for _, new_output in ipairs(output_rates) do
+            result.output[new_output.name] = {layer=1, rate=new_output.rate}
+        end
+        result.output[1] = {belt=output_belt, inserter=output_inserter, type="item", items=new_output_names}
+    else
+        for i = 1, #output_rates do
+            local new_output = output_rates[i]
+
+            if output.type == "item" then
+                local output_belt = _get_best_transport_belt(new_output.rate)
+                local output_inserter = _get_best_inserter(new_output.rate, prototypes.entity[output_belt.normal].belt_speed * 60 * 4)
+
+                result.output[new_output.name] = {layer=i, rate=new_output.rate}
+                result.output[i] = {belt=output_belt, inserter=output_inserter, type="item", items={new_output.name}}
+            else
+                result.output[new_output.name] = {layer=i, rate=new_output.rate}
+                result.output[i] = {type="fluid", fluid=new_output.name}
+            end
+        end
     end
 
     return result

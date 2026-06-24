@@ -98,7 +98,11 @@ function gui.get_recipe_data(player)
     local text_element = player_gui.rate_text
     local m_rate = text_element and tonumber(text_element.text) or 1
 
-    return {recipe=m_recipe, product=m_product, rate=m_rate}
+    return {
+        recipe=m_recipe, 
+        product=m_product, 
+        rate=m_rate
+    }
 end
 
 function gui.destroy(player)

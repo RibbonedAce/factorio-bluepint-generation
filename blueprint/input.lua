@@ -19,6 +19,17 @@ local function _place_single_fluid_row(args)
     for i = -args.crafting_entity_size, args.crafting_entity_size do
         args.plan_put{name="pipe", position={x_position, i}}
     end
+
+    if args.placing == "first" then
+        local new_recipes = common.get_recipes(args.fluids[1])
+
+        if #new_recipes == 0 then
+            args.plan_put{name="pipe-to-ground", position={x_position, -args.crafting_entity_size - 7}, direction=north}
+            args.plan_put{name="pipe-to-ground", position={x_position, -args.crafting_entity_size - 1}, direction=south}
+        else
+            table.insert(args.planned_layout.fluid_input_positions, Position.from{x_position, -args.crafting_entity_size})
+        end
+    end
 end
 
 local function _place_multiple_fluid_rows(args)
@@ -32,7 +43,7 @@ local function _place_multiple_fluid_rows(args)
         m_position = m_position - {i - 1, 0}
 
         if m_position.y - 1 >= -args.crafting_entity_size then
-            if m_position.y - 2 >= -args.crafting_entity_size then
+            if m_position.y - 2 >= -args.crafting_entity_size or args.placing == "first" then
                 args.plan_put{name="pipe-to-ground", position=m_position - {0, 1}, direction=south}
             else
                 args.plan_put{name="pipe", position=m_position - {0, 1}}
@@ -44,6 +55,16 @@ local function _place_multiple_fluid_rows(args)
                 args.plan_put{name="pipe-to-ground", position=m_position + {0, 1}, direction=north}
             else
                 args.plan_put{name="pipe", position=m_position + {0, 1}}
+            end
+        end
+
+        if args.placing == "first" then
+            local new_recipes = common.get_recipes(args.fluids[i])
+
+            if #new_recipes == 0 then
+                args.plan_put{name="pipe-to-ground", position={m_position.x, -args.crafting_entity_size - 7}, direction=north}
+            else
+                table.insert(args.planned_layout.fluid_input_positions, Position.from{m_position.x, -args.crafting_entity_size})
             end
         end
     end
@@ -89,75 +110,127 @@ local function _get_input_filters(entity, items)
 end
 
 local function _place_single_item_row(args)
-    args.plan_put{name=args.inserters[1], position=args.input_item_position, filters=args.input_filters, direction=west}
+    local layer_info = args.skeleton["input"][1]
+
+    args.plan_put{name=layer_info.inserter, position=args.input_item_position, filters=args.input_filters, direction=west}
     local x_position = -1 * (args.crafting_entity_size + 2)
 
     for i = -args.crafting_entity_size, args.crafting_entity_size do
-        args.plan_put{name=args.belts[1].normal, position={x_position, i}, direction=south}
+        args.plan_put{name=layer_info.belt.normal, position={x_position, i}, direction=south}
+    end
+
+    if args.placing == "first" then
+        local new_recipes = common.get_recipes(args.items[1])
+
+        if #new_recipes == 0 then
+            args.plan_put{name=layer_info.belt.underground, position={x_position, -args.crafting_entity_size - 7}, type="input", direction=south}
+            args.plan_put{name=layer_info.belt.underground, position={x_position, -args.crafting_entity_size - 2}, type="output", direction=south}
+            args.plan_put{name=layer_info.belt.normal, position={x_position, -args.crafting_entity_size - 1}, direction=south}
+        else
+            table.insert(args.planned_layout.item_input_positions, Position.from{x_position, -args.crafting_entity_size})
+        end
     end
 end
 
 local function _place_double_item_rows(args)
-    args.plan_put{name=args.inserters[1], position=args.item_positions[#args.item_positions - (args.input_index - 1)], filters=args.input_filters, direction=west}
-    args.plan_put{name=args.inserters[2], position=args.input_item_position, filters=args.input_filters, direction=west}
+    local layer_info_1 = args.skeleton["input"][1]
+    local layer_info_2 = args.skeleton["input"][2]
+
+    args.plan_put{name=layer_info_1.inserter, position=args.item_positions[#args.item_positions - (args.input_index - 1)], filters=args.input_filters, direction=west}
+    args.plan_put{name=layer_info_2.inserter, position=args.input_item_position, filters=args.input_filters, direction=west}
 
     for j = -args.crafting_entity_size, args.crafting_entity_size do
         if j == args.input_item_position.y - 1 then
-            args.plan_put{name=args.belts[1].underground, position={args.input_item_position.x - 1, j}, type="input", direction=south}
-            args.plan_put{name=args.belts[2].normal, position={args.input_item_position.x - 2, j}, direction=south}
+            args.plan_put{name=layer_info_1.belt.underground, position={args.input_item_position.x - 1, j}, type="input", direction=south}
+            args.plan_put{name=layer_info_2.belt.normal, position={args.input_item_position.x - 2, j}, direction=south}
         elseif j == args.input_item_position.y then
-            args.plan_put{name=args.belts[2].splitter, position={args.input_item_position.x - 1, j}, output_priority="left", direction=south}
+            args.plan_put{name=layer_info_2.belt.splitter, position={args.input_item_position.x - 1, j}, output_priority="left", direction=south}
         elseif j == args.input_item_position.y + 1 then
-            args.plan_put{name=args.belts[1].underground, position={args.input_item_position.x - 1, j}, type="output", direction=south}
-            args.plan_put{name=args.belts[2].normal, position={args.input_item_position.x - 2, j}, direction=south}
+            args.plan_put{name=layer_info_1.belt.underground, position={args.input_item_position.x - 1, j}, type="output", direction=south}
+            args.plan_put{name=layer_info_2.belt.normal, position={args.input_item_position.x - 2, j}, direction=south}
         else
-            args.plan_put{name=args.belts[1].normal, position={args.input_item_position.x - 1, j}, direction=south}
-            args.plan_put{name=args.belts[2].normal, position={args.input_item_position.x - 2, j}, direction=south}
+            args.plan_put{name=layer_info_1.belt.normal, position={args.input_item_position.x - 1, j}, direction=south}
+            args.plan_put{name=layer_info_2.belt.normal, position={args.input_item_position.x - 2, j}, direction=south}
+        end
+    end
+
+    if args.placing == "first" then
+        local new_recipes = common.get_recipes(args.items[1])
+
+        if #new_recipes == 0 then
+            args.plan_put{name=layer_info_1.belt.underground, position={args.input_item_position.x - 1, -args.crafting_entity_size - 7}, type="input", direction=south}
+            args.plan_put{name=layer_info_1.belt.underground, position={args.input_item_position.x - 1, -args.crafting_entity_size - 2}, type="output", direction=south}
+            args.plan_put{name=layer_info_1.belt.normal, position={args.input_item_position.x - 1, -args.crafting_entity_size - 1}, direction=south}
+        else
+            table.insert(args.planned_layout.item_input_positions, Position.from{args.input_item_position.x - 1, -args.crafting_entity_size})
+        end
+
+        new_recipes = common.get_recipes(args.recipe.ingredients[2])
+
+        if #new_recipes == 0 then
+            args.plan_put{name=layer_info_2.belt.underground, position={args.input_item_position.x - 2, -args.crafting_entity_size - 7}, type="input", direction=south}
+            args.plan_put{name=layer_info_2.belt.underground, position={args.input_item_position.x - 2, -args.crafting_entity_size - 2}, type="output", direction=south}
+            args.plan_put{name=layer_info_2.belt.normal, position={args.input_item_position.x - 2, -args.crafting_entity_size - 1}, direction=south}
+        else
+            table.insert(args.planned_layout.item_input_positions, Position.from{args.input_item_position.x - 2, -args.crafting_entity_size})
         end
     end
 end
 
 local function _place_multiple_item_rows(args)
-
     for i = 1, args.num_item_rows do
+        local layer_info = args.skeleton["input"][i]
+
         args.input_index = args.parity == "even" and i or #args.item_positions - i + 1
         args.input_item_position = args.item_positions[args.input_index]
 
-        args.plan_put{name=args.inserters[i], position=args.input_item_position, filters=args.input_filters, direction=west}
+        args.plan_put{name=layer_info.inserter, position=args.input_item_position, filters=args.input_filters, direction=west}
         local y_offset = args.input_item_position.y == args.crafting_entity_size and 1 or 0
         local base_position = args.input_item_position + {-3 * i, y_offset - 1}
 
-        for j = -args.crafting_entity_size, args.crafting_entity_size do
+        for j = -args.crafting_entity_size - 1, args.crafting_entity_size do
             if j ~= base_position.y then
-                args.plan_put{name=args.belts[i].normal, position={base_position.x, j}, direction=south}
+                args.plan_put{name=layer_info.belt.normal, position={base_position.x, j}, direction=south}
             end
         end
 
-        args.plan_put{name=args.belts[i].splitter, position=base_position + {1, 0}, output_priority="left", direction=south}
-        args.plan_put{name=args.belts[i].normal, position=base_position + {1, 1}, direction=east}
+        args.plan_put{name=layer_info.belt.splitter, position=base_position + {1, 0}, output_priority="left", direction=south}
+        args.plan_put{name=layer_info.belt.normal, position=base_position + {1, 1}, direction=east}
 
         local covering_multiple = base_position.y + 1 == -args.crafting_entity_size or base_position.y == args.crafting_entity_size
 
         for j = base_position.x + 2, args.input_item_position.x - 2, 6 do
-            args.plan_put{name=args.belts[i].underground, position={j, base_position.y + 1}, type="input", direction=east}
+            args.plan_put{name=layer_info.belt.underground, position={j, base_position.y + 1}, type="input", direction=east}
 
             local underground_exit_x_position = math.min(j + 6, args.input_item_position.x - 2)
             if not covering_multiple and underground_exit_x_position == args.input_item_position.x - 2 then
                  underground_exit_x_position = underground_exit_x_position + 1
             end
 
-            args.plan_put{name=args.belts[i].underground, position={underground_exit_x_position, base_position.y + 1}, type="output", direction=east}
+            args.plan_put{name=layer_info.belt.underground, position={underground_exit_x_position, base_position.y + 1}, type="output", direction=east}
         end
 
         if covering_multiple then
-            args.plan_put{name=args.belts[i].normal, position={args.input_item_position.x - 1, base_position.y + 1}, direction=north}
+            args.plan_put{name=layer_info.belt.normal, position={args.input_item_position.x - 1, base_position.y + 1}, direction=north}
         end
 
         for j = 1, y_offset do
             if j == y_offset then
-                args.plan_put{name=args.belts[i].underground, position={args.input_item_position.x - 1, base_position.y + 1 - j}, type="input", direction=north}
+                args.plan_put{name=layer_info.belt.underground, position={args.input_item_position.x - 1, base_position.y + 1 - j}, type="input", direction=north}
             else
-                args.plan_put{name=args.belts[i].normal, position={args.input_item_position.x - 1, base_position.y + 1 - j}, direction=north}
+                args.plan_put{name=layer_info.belt.normal, position={args.input_item_position.x - 1, base_position.y + 1 - j}, direction=north}
+            end
+        end
+
+        if args.placing == "first" then
+            local new_recipes = common.get_recipes(args.items[i])
+
+            if #new_recipes == 0 then
+                args.plan_put{name=layer_info.belt.underground, position={base_position.x, -args.crafting_entity_size - 7}, type="input", direction=south}
+                args.plan_put{name=layer_info.belt.underground, position={base_position.x, -args.crafting_entity_size - 2}, type="output", direction=south}
+                args.plan_put{name=layer_info.belt.normal, position={base_position.x, -args.crafting_entity_size - 1}, direction=south}
+            else
+                table.insert(args.planned_layout.item_input_positions, Position.from{base_position.x, -args.crafting_entity_size - 1})
             end
         end
     end
@@ -190,7 +263,7 @@ local function _place_electric_poles(args)
         for y = args.crafting_entity_size, -args.crafting_entity_size, -1 do
             local candidate_position = Position.from{x, y} - {args.crafting_entity_size, 0}
 
-            if not args.planned_positions[tostring(candidate_position + args.position)] then
+            if not args.planned_layout.positions[tostring(candidate_position + args.position)] then
                 args.plan_put{name="medium-electric-pole", position=candidate_position}
                 return
             end

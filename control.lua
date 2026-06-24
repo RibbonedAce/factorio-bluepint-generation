@@ -1,6 +1,7 @@
 local gui = require("gui")
 local memory = require("memory")
 local blueprint = require("blueprint.blueprint")
+    
 
 local function _init(player)
     gui.destroy(player)

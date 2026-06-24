@@ -36,6 +36,49 @@ local function _to_inventory_positions(items_array, inventory_slot)
     return inventory_positions
 end
 
+function common.get_recipes(product)
+    local new_recipes = prototypes.get_recipe_filtered({
+        {filter="has-product-item", elem_filters={{filter="name", name=product}}},
+        {filter="has-product-fluid", elem_filters={{filter="name", name=product}}}
+    })
+
+    local actual_recipes = {}
+
+    for _, recipe in pairs(new_recipes) do
+        local original_as_nested_ingredient = false
+
+        for _, ingredient in ipairs(recipe.ingredients) do
+            local nested_recipes = prototypes.get_recipe_filtered({
+                {filter="has-product-item", elem_filters={{filter="name", name=ingredient}}},
+                {filter="has-product-fluid", elem_filters={{filter="name", name=ingredient}}}
+            })
+
+            for _, nested_recipe in pairs(nested_recipes) do
+                for _, nested_ingredient in ipairs(nested_recipe.ingredients) do
+                    if nested_ingredient.name == product then
+                        original_as_nested_ingredient = true
+                        break
+                    end
+                end
+
+                if original_as_nested_ingredient then
+                    break
+                end
+            end
+
+            if original_as_nested_ingredient then
+                break
+            end
+        end
+
+        if not original_as_nested_ingredient then
+            table.insert(actual_recipes, recipe)
+        end
+    end
+
+    return actual_recipes
+end
+
 function common.get_fluid_connection_positions(flow_direction, components, args)
     local fluid_positions = {}
 
@@ -182,29 +225,7 @@ end
 function common.plan_put(args)
     local function put(i_args)
         i_args.position = Position.from(i_args.position) + args.position
-
-        local selection_box = prototypes.entity[i_args.name].selection_box
-        local box_dims = Position.from{
-                math.ceil(math.abs(selection_box.left_top.x - selection_box.right_bottom.x)),
-                math.ceil(math.abs(selection_box.left_top.y - selection_box.right_bottom.y))
-        }
-
-        if i_args.direction and i_args.direction % 4 ~= 0 then
-            box_dims = Position.from{box_dims.y, box_dims.x}
-        end
-
-        local planned_box = {
-                {x=math.ceil(i_args.position.x - box_dims.x / 2), y=math.ceil(i_args.position.y - box_dims.y / 2)},
-                {x=math.floor(i_args.position.x + box_dims.x / 2), y=math.floor(i_args.position.y + box_dims.y / 2)},
-        }
-
-        table.insert(args.planned_entities, i_args)
-
-        for x = planned_box[1].x, planned_box[2].x do
-            for y = planned_box[1].y, planned_box[2].y do
-                args.planned_positions[tostring(Position.from{x, y})] = i_args.name
-            end
-        end
+        args.planned_layout:add(i_args)
     end
 
     return put
@@ -213,7 +234,7 @@ end
 function common.actual_put(planned_entities)
     local actual_entities = {}
 
-    for _, entity in ipairs(planned_entities) do
+    for entity, _ in pairs(planned_entities) do
         local new_entity = common.create_ghost_entity(entity)
         table.insert(actual_entities, new_entity)
     end
@@ -227,19 +248,12 @@ function common.setup_args(args, meta_args)
     args.fluid_positions = common.get_fluid_connection_positions(meta_args.flow_direction, meta_args.components, args)
     args.item_positions = common.get_item_inserter_positions(args.crafting_entity_size, args.fluid_positions, meta_args.flow_direction)
 
-    args.belts = {}
-    args.inserters = {}
-    for _, skeleton_entry in pairs(args.skeleton[meta_args.flow_direction]) do
-        table.insert(args.belts, skeleton_entry.belt)
-        table.insert(args.inserters, skeleton_entry.inserter)
-    end
-
     local should_use_electric_pole = args.parity == "odd"
             or prototypes.entity["medium-electric-pole"].get_supply_area_distance() < common.get_length(args.crafting_entity.selection_box)
     args.electric_pole = should_use_electric_pole and prototypes.entity["medium-electric-pole"] or nil
 
     local ingredient_data = common.get_component_data(meta_args.components)
-    util.insert_all(args, ingredient_data)
+    util.dict_insert_all(args, ingredient_data)
 end
 
 return common

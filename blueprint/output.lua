@@ -10,9 +10,13 @@ local output = {}
 local function _place_single_fluid_row(args)
    local x_position = args.crafting_entity_size + 1
 
-   for i = -args.crafting_entity_size, args.crafting_entity_size do
-       args.plan_put{name="pipe", position={x_position, i}}
-   end
+    for i = -args.crafting_entity_size, args.crafting_entity_size do
+        args.plan_put{name="pipe", position={x_position, i}}
+    end
+
+    if args.placing == "first" then
+        table.insert(args.planned_layout.fluid_output_positions, Position.from{args.crafting_entity_size + 1, -args.crafting_entity_size})
+    end
 end
 
 local function _place_multiple_fluid_rows(args)
@@ -38,6 +42,10 @@ local function _place_multiple_fluid_rows(args)
                 args.plan_put{name="pipe", position=m_position + {0, 1}}
             end
         end
+
+        if args.placing == "first" then
+            table.insert(args.planned_layout.fluid_output_positions, Position.from{m_position.x, -args.crafting_entity_size})
+        end
     end
 end
 
@@ -56,11 +64,16 @@ end
 local function _place_single_item_row(args)
     args.output_index = args.parity == "even" and 1 or #args.item_positions
     args.output_item_position = args.item_positions[args.output_index]
+    local layer_info = args.skeleton["output"][1]
 
-    args.plan_put{name=args.inserters[1], position=args.output_item_position, direction=west}
+    args.plan_put{name=layer_info.inserter, position=args.output_item_position, direction=west}
 
     for i = -args.crafting_entity_size, args.crafting_entity_size do
-        args.plan_put{name=args.belts[1].normal, position={args.crafting_entity_size + 2, i}, direction=north}
+        args.plan_put{name=layer_info.belt.normal, position={args.crafting_entity_size + 2, i}, direction=north}
+    end
+
+    if args.placing == "first" then
+        table.insert(args.planned_layout.item_output_positions, Position.from{args.crafting_entity_size + 2, -args.crafting_entity_size})
     end
 end
 
@@ -79,7 +92,7 @@ local function _place_electric_poles(args)
         for y = args.crafting_entity_size, -args.crafting_entity_size, -1 do
             local candidate_position = Position.from{x, y} + {args.crafting_entity_size, 0}
 
-            if not args.planned_positions[tostring(candidate_position + args.position)] then
+            if not args.planned_layout.positions[tostring(candidate_position + args.position)] then
                 args.plan_put{name="medium-electric-pole", position=candidate_position}
                 return
             end

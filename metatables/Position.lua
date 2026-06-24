@@ -4,6 +4,10 @@ local Position = {}
 Position.mt = {}
 
 function Position.from(table)
+    if not table then
+        error("No table passed to make position")
+    end
+
     if getmetatable(table) == Position.mt then
         return table
     end
@@ -24,7 +28,7 @@ function Position.from(table)
         setmetatable(position, Position.mt)
         return position
     else
-        error("Not a valid table to turn into a position - values not valid: " .. position.x .. ", " .. position.y)
+        error("Not a valid table to turn into a position - values not valid: " .. (position.x or "nil") .. ", " .. (position.y or "nil"))
     end
 end
 
