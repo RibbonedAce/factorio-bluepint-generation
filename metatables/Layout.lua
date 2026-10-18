@@ -1,42 +1,51 @@
 package.path = "../?.lua"
 
-local util = require("util")
 local Position = require("metatables.Position")
+local BPGNBoundingBox = require("metatables.BPGNBoundingBox")
 
 
+---@class Layout
+---@field entities table<GhostEntityArgs, Position[]>
+---@field positions table<string, GhostEntityArgs>
+---@field box BPGNBoundingBox
+---@field item_input_positions Position[]
+---@field item_output_positions Position[]
+---@field fluid_input_positions Position[]
+---@field fluid_output_positions Position[]
+---@field num_entities integer
+---@field excluded_entities set<string>
+---@field origin_position Position
+---@operator tostring: string
 local Layout = {}
-Layout.mt = {}
 
+---@return Layout
 function Layout.new()
     local layout = {
-        entities={}, 
-        positions={}, 
-        box={}, 
-        item_input_positions={}, 
-        item_output_positions={}, 
-        fluid_input_positions={}, 
-        fluid_output_positions={}, 
-        num_entities=0,
-        excluded_entities={}
+        entities = {}, 
+        positions = {}, 
+        box = {left_top = Position.from{0, 0}, right_bottom = Position.from{0, 0}}, 
+        item_input_positions = {}, 
+        item_output_positions = {}, 
+        fluid_input_positions = {}, 
+        fluid_output_positions = {}, 
+        num_entities = 0,
+        excluded_entities = {},
+        origin_position = Position.from{0, 0}
     }
-    setmetatable(layout, Layout.mt)
-
-    layout.add = Layout.add
-    layout.add_all = Layout.add_all
-    layout.move = Layout.move
-    layout.exclude_from_box = Layout.exclude_from_box
-
-    return layout
+    
+    return setmetatable(layout, Layout)
 end
 
-function Layout.exclude_from_box(self, entity_name)
+---@param entity_name string
+function Layout:exclude_from_box(entity_name)
     self.excluded_entities[entity_name] = true
 end
 
-function Layout.add(self, entity)
+---@param entity GhostEntityArgs
+function Layout:add(entity)
     local m_direction = entity.direction or north
 
-    local selection_box = prototypes.entity[entity.name].selection_box
+    local selection_box = BPGNBoundingBox.adapt(prototypes.entity[entity.name].selection_box)
 
     local box_dims = Position.from{
         math.ceil(math.abs(selection_box.left_top.x - selection_box.right_bottom.x)),
@@ -48,8 +57,8 @@ function Layout.add(self, entity)
     end
 
     local planned_box = {
-        {x=math.floor(entity.position.x + 0.5 - box_dims.x / 2), y=math.floor(entity.position.y + 0.5 - box_dims.y / 2)},
-        {x=math.floor(entity.position.x + 0.5 + box_dims.x / 2), y=math.floor(entity.position.y + 0.5 + box_dims.y / 2)},
+        {x = math.floor(entity.position.x + 0.5 - box_dims.x / 2), y = math.floor(entity.position.y + 0.5 - box_dims.y / 2)},
+        {x = math.floor(entity.position.x + 0.5 + box_dims.x / 2), y = math.floor(entity.position.y + 0.5 + box_dims.y / 2)},
     }
 
     local new_positions = {}
@@ -93,7 +102,8 @@ function Layout.add(self, entity)
     self.num_entities = self.num_entities + 1
 end
 
-function Layout.add_all(self, other)
+---@param other Layout
+function Layout:add_all(other)
     for other_entity, _ in pairs(other.entities) do
         self:add(other_entity)
     end
@@ -104,7 +114,8 @@ function Layout.add_all(self, other)
     self.fluid_output_positions = other.fluid_output_positions
 end
 
-function Layout.move(self, displacement)
+---@param displacement Position
+function Layout:move(displacement)
     self.positions = {}
 
     for entity, e_positions in pairs(self.entities) do
@@ -136,7 +147,7 @@ function Layout.move(self, displacement)
     end
 end
 
-Layout.mt.__tostring = function(self)
+function Layout:__tostring()
     return "Layout(entities: " .. self.num_entities .. ", box: " .. serpent.block(self.box) .. ")"
 end
 

@@ -1,83 +1,81 @@
 package.path = "../?.lua"
 
+local math2d = require("core.lualib.math2d")
+
+
+---@class Position
+---@field x integer
+---@field y integer
+---@operator add(math2d_position_union | Position): Position
+---@operator sub(math2d_position_union | Position): Position
+---@operator mul(double): Position
+---@operator div(double): Position
+---@operator eq(math2d_position_union | Position): boolean
+---@operator unm: Position
+---@operator tostring: string
 local Position = {}
-Position.mt = {}
 
+---@param table math2d_position_union | Position
+---@return Position
 function Position.from(table)
-    if not table then
-        error("No table passed to make position")
-    end
-
-    if getmetatable(table) == Position.mt then
+    if getmetatable(table) == Position then
+        ---@cast table Position
         return table
     end
 
-    local position = {x=0, y=0}
-
-    if table.x and table.y then
-        position.x = table.x
-        position.y = table.y
-    elseif #table == 2 then
-        position.x = table[1]
-        position.y = table[2]
-    else
-        error("Not a valid table to turn into a position - structure not valid: " .. serpent.block(table))
-    end
-
-    if type(position.x) == "number" and type(position.y) == "number" then
-        setmetatable(position, Position.mt)
-        return position
-    else
-        error("Not a valid table to turn into a position - values not valid: " .. (position.x or "nil") .. ", " .. (position.y or "nil"))
-    end
+    return setmetatable(table, Position)
 end
 
-Position.mt.__add = function(self, p_2)
-    local other = Position.from(p_2)
-
-    return Position.from{self.x + other.x, self.y + other.y}
+---@return MapPosition.struct
+function Position:to()
+    return {x = self.x, y = self.y}
 end
 
-Position.mt.__sub = function(self, p_2)
-    local other = Position.from(p_2)
-
-    return Position.from{self.x - other.x, self.y - other.y}
+---@param p1 math2d_position_union
+---@param p2 math2d_position_union
+---@return Position
+function Position.__add(p1, p2)
+    return setmetatable(math2d.position.add(p1, p2), Position)
 end
 
-Position.mt.__mul = function(p1, p2)
-    local self = getmetatable(p1) == Position.mt and p1 or p2
-    local other = self == p1 and p2 or p1
-
-    if type(other) == "number" then
-        return Position.from{self.x * other, self.y * other}
-    else
-        error("Cannot multiply position by non-number " .. tostring(other))
-    end
+---@param p1 math2d_position_union
+---@param p2 math2d_position_union
+---@return Position
+function Position.__sub(p1, p2)
+    return setmetatable(math2d.position.subtract(p1, p2), Position)
 end
 
-Position.mt.__div = function(p1, p2)
-    local self = getmetatable(p1) == Position.mt and p1 or p2
-    local other = self == p1 and p2 or p1
-
-    if type(other) == "number" then
-        return Position.from{self.x / other, self.y / other}
-    else
-        error("Cannot divide position by non-number " .. tostring(other))
-    end
+---@param pos math2d_position_union
+---@param num double
+---@return Position
+function Position.__mul(pos, num)
+    return setmetatable(math2d.position.multiply_scalar(pos, num), Position)
 end
 
-Position.mt.__unm = function(self)
-    return Position.from{-self.x, -self.y}
+---@param pos math2d_position_union
+---@param num double
+---@return Position
+function Position.__div(pos, num)
+    return setmetatable(math2d.position.divide_scalar(pos, num), Position)
 end
 
-Position.mt.__eq = function(self, p_2)
-    local other = Position.from(p_2)
-
-    return self.x == other.x and self.y == other.y
+---@param pos math2d_position_union
+---@return Position
+function Position.__unm(pos)
+    return setmetatable(math2d.position.multiply_scalar(pos, -1), Position)
 end
 
-Position.mt.__tostring = function(self)
-    return "(" .. self.x .. ", " .. self.y .. ")"
+---@param p1 math2d_position_union
+---@param p2 math2d_position_union
+---@return boolean
+function Position.__eq(p1, p2)
+    return p1.x == p2.x and p1.y == p2.y
+end
+
+---@param pos math2d_position_union
+---@return string
+function Position.__tostring(pos)
+    return "(" .. pos.x .. ", " .. pos.y .. ")"
 end
 
 return Position

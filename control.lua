@@ -1,8 +1,9 @@
 local gui = require("gui")
 local memory = require("memory")
 local blueprint = require("blueprint.blueprint")
+local BPGNGuiChooseElemButton = require("metatables.gui.BPGNGuiChooseElemButton")
     
-
+---@param player LuaPlayer
 local function _init(player)
     gui.destroy(player)
     memory.init(player.index)
@@ -42,7 +43,7 @@ end)
 script.on_event(defines.events.on_gui_elem_changed, function(event)
     if event.element and event.element.name == "bpgn_recipe_button" then
         memory.save(event.player_index, "recipe", event.element.elem_value)
-        gui.update_item(event.player_index, event.element.elem_value)
+        gui.update_item(event.player_index, BPGNGuiChooseElemButton.adapt(event.element))
     elseif event.element and event.element.name == "bpgn_item_button" then
         memory.save(event.player_index, "item", event.element.elem_value)
     end
