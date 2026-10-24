@@ -2,7 +2,7 @@
   "name": "blueprint-generation",
   "version": "0.0.1",
   "title": "Blueprint Generation",
-  "author": "You",
+  "author": "Ribboned Ace",
   "factorio_version": "2.1",
   "dependencies": ["base >= 2.1"],
   "description": "Generates ready-to-go blueprints based on specified resource needs."
