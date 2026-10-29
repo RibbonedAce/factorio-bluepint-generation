@@ -1,0 +1,12 @@
+-- Configuration for busted, the test runner. Run `busted` from the repo root.
+-- Specs live in spec/ and end in `_spec.lua`; spec/support/ holds helpers they share.
+return {
+  default = {
+    ROOT = {"spec"},
+    pattern = "_spec",
+    -- Lets specs say require("scripts.planner") and require("spec.support.builders").
+    lpath = "./?.lua;./?/init.lua",
+    -- Runs once before the specs: fakes the game's constants, adds custom assertions.
+    helper = "spec/helper.lua",
+  },
+}
