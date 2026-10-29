@@ -4,6 +4,12 @@
 -- yet. All real work happens inside the handler functions further down, which
 -- the game calls later.
 
+-- `require` loads another file of this mod (scripts/config.lua, written with a
+-- dot instead of a slash) and gives back whatever that file `return`s. It may
+-- only be called here at the top of the file, never inside a handler.
+local config = require("scripts.config")
+local generator = require("scripts.generator")
+
 -- Names of the things we create, written once so a typo can't hide in a string.
 -- They never change while the game runs, so file-level `local` constants like
 -- these are safe (only variables that CHANGE at runtime cause multiplayer desyncs).
@@ -23,6 +29,16 @@ local function close_window(player)
   end
 end
 
+-- The item picker only offers the products the generator supports. `elem_filters`
+-- takes a list of filters; this one means "items whose name is one of these".
+local function supported_item_filters()
+  local names = {}
+  for name in pairs(config.products) do
+    names[#names + 1] = name
+  end
+  return {{filter = "name", name = names}}
+end
+
 -- Build the window. Everything the player can type or pick is a direct child
 -- of `frame`, so Generate can find it again by name later. That means the GUI
 -- itself remembers its state and we never need Factorio's `storage` table.
@@ -38,7 +54,12 @@ local function open_window(player)
   frame.auto_center = true
 
   frame.add{type = "label", caption = {"blueprint-generation.item-label"}}
-  frame.add{type = "choose-elem-button", name = ITEM_BUTTON_NAME, elem_type = "item"}
+  frame.add{
+    type = "choose-elem-button",
+    name = ITEM_BUTTON_NAME,
+    elem_type = "item",
+    elem_filters = supported_item_filters(),
+  }
 
   frame.add{type = "label", caption = {"blueprint-generation.rate-label"}}
   frame.add{
@@ -57,10 +78,7 @@ local function open_window(player)
   player.opened = frame
 end
 
--- Read what the player entered and put a blueprint on their cursor.
--- For now the blueprint is a single placeholder chest: it proves the whole
--- chain (button -> window -> values -> cursor) works before we build the
--- real planner.
+-- Read what the player entered, generate the blueprint and put it on their cursor.
 local function generate_blueprint(player)
   local frame = player.gui.screen[FRAME_NAME]
   if not frame then
@@ -79,6 +97,13 @@ local function generate_blueprint(player)
     return
   end
 
+  -- Generate first, so a failure leaves the player's cursor untouched.
+  local result, error_message = generator.generate(item_name, rate)
+  if not result then
+    player.print(error_message)
+    return
+  end
+
   local cursor = player.cursor_stack
   if not cursor then
     player.print({"blueprint-generation.error-no-cursor"})
@@ -93,14 +118,11 @@ local function generate_blueprint(player)
     return
   end
 
-  cursor.set_blueprint_entities({
-    {entity_number = 1, name = "iron-chest", position = {x = 0.5, y = 0.5}},
-  })
-  -- `..` joins strings; a number is converted to text automatically.
-  cursor.blueprint_description = "Placeholder for " .. item_name .. " at " .. rate .. " per minute"
+  cursor.set_blueprint_entities(result.entities)
+  cursor.blueprint_description = result.description
 
   close_window(player)
-  player.print({"blueprint-generation.placeholder-done", item_name, rate})
+  player.print(result.message)
 end
 
 -- The shortcut-bar button was clicked: open the window, or close it if open.

@@ -18,6 +18,11 @@ builders.NAMES = {
   pole = "small-electric-pole",
 }
 
+-- `{name = "iron-ore", amount = 1}` written as `amount_of(1, "iron-ore")`.
+function builders.amount_of(amount, name)
+  return {name = name, amount = amount}
+end
+
 --------------------------------------------------------------------------------
 -- Blueprint entities. Positions are given as TILES: the top-left tile the entity
 -- covers (see scripts/grid.lua), so `furnace(2, 0)` covers tiles x 2 to 3 and
@@ -83,6 +88,60 @@ function builders.a_catalog(options)
       kind = "pole", width = 1, height = 1,
       supply_radius = options.pole_supply_radius or 2.5,
       wire_reach = options.pole_wire_reach or 7.5,
+    },
+  }
+end
+
+--------------------------------------------------------------------------------
+-- A stand-in for the game's `prototypes` table, for generator tests.
+--------------------------------------------------------------------------------
+
+-- Options (all optional):
+--   furnace_speed   the stone furnace's crafting speed, default 1
+--   belt_speed      the transport belt's speed, default 0.03125
+--   recipe_energy   seconds per craft of the plate recipes, default 3.2
+-- The result can be changed afterwards, for example `fake.entity["inserter"] = nil`.
+function builders.fake_prototypes(options)
+  options = options or {}
+  local furnace_speed = options.furnace_speed or 1
+  local belt_speed = options.belt_speed or 0.03125
+  local recipe_energy = options.recipe_energy or 3.2
+
+  local function entity(name, crafting_speed, speed)
+    return {
+      localised_name = {"entity-name." .. name},
+      get_crafting_speed = function() return crafting_speed end,
+      belt_speed = speed,
+    }
+  end
+  local function recipe(ore)
+    local plate = (ore:gsub("%-ore$", "-plate")) -- "iron-ore" -> "iron-plate"
+    return {
+      energy = recipe_energy,
+      ingredients = {{type = "item", name = ore, amount = 1}},
+      products = {{type = "item", name = plate, amount = 1}},
+      get_product_amount = function() return 1 end,
+    }
+  end
+  local function item(name)
+    return {localised_name = {"item-name." .. name}}
+  end
+
+  return {
+    entity = {
+      ["stone-furnace"] = entity("stone-furnace", furnace_speed, nil),
+      ["transport-belt"] = entity("transport-belt", nil, belt_speed),
+      ["inserter"] = entity("inserter", nil, nil),
+      ["small-electric-pole"] = entity("small-electric-pole", nil, nil),
+    },
+    recipe = {
+      ["iron-plate"] = recipe("iron-ore"),
+      ["copper-plate"] = recipe("copper-ore"),
+    },
+    item = {
+      ["iron-plate"] = item("iron-plate"), ["copper-plate"] = item("copper-plate"),
+      ["iron-ore"] = item("iron-ore"), ["copper-ore"] = item("copper-ore"),
+      ["coal"] = item("coal"),
     },
   }
 end
