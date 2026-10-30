@@ -56,12 +56,13 @@ local function open_window(player)
   frame.auto_center = true
 
   frame.add{type = "label", caption = {"blueprint-generation.item-label"}}
-  frame.add{
+  local item_button = frame.add{
     type = "choose-elem-button",
     name = ITEM_BUTTON_NAME,
     elem_type = "item",
     elem_filters = supported_item_filters(),
   }
+  item_button.elem_value = config.default_product -- the player can still change or clear it
 
   frame.add{type = "label", caption = {"blueprint-generation.rate-label"}}
   frame.add{

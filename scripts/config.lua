@@ -9,6 +9,7 @@
 ---@class bpgen.Config
 ---@field entities {belt: string, inserter: string, pole: string}
 ---@field products table<string, bpgen.Product>  keyed by the product item's name
+---@field default_product string  the item the window starts with; must be a key of `products`
 
 ---@type bpgen.Config
 local config = {
@@ -25,6 +26,9 @@ local config = {
     ["iron-plate"] = {recipe = "iron-plate", machine = "stone-furnace", fuel = "coal"},
     ["copper-plate"] = {recipe = "copper-plate", machine = "stone-furnace", fuel = "coal"},
   },
+
+  -- The item already picked when the window opens.
+  default_product = "iron-plate",
 }
 
 return config
