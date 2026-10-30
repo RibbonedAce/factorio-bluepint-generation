@@ -14,7 +14,10 @@
 --        v      >      [F F]      >       v      <- top row of furnace 1
 --        v      P      [F F]      P       v      <- bottom row of furnace 1 (P = pole)
 --        v      >      [F F]      >       v      <- top row of furnace 2
---        v             [F F]              v
+--                      [F F]              v      <- bottom row of furnace 2 (no poles: they serve every second furnace)
+--
+-- The input belt ends at the last input inserter (top row of the last furnace);
+-- the output belt runs the full height, so the plates can carry on downstream.
 --
 -- The input belt carries ore on one lane and coal on the other. Inserters move
 -- ore and fuel from the belt into the furnace, and plates from the furnace onto
@@ -68,15 +71,28 @@ local function new_blueprint()
   return blueprint
 end
 
--- Both belts run south (down the page), the full height of the column.
+-- A run of belt tiles down one column of the layout, from row 0 to `length - 1`, running south.
+---@param blueprint bpgen.Blueprint
+---@param column integer  tile column
+---@param length integer  how many tiles
+---@param names bpgen.Names
+local function add_belt_column(blueprint, column, length, names)
+  for row = 0, length - 1 do
+    blueprint.add({name = names.belt, position = grid.position(column, row), direction = defines.direction.south})
+  end
+end
+
+-- Both belts run south (down the page). The output belt keeps the full height of
+-- the column, so the plates have somewhere to go. The input belt stops at the last
+-- input inserter, which sits in the top row of the last furnace: nothing below it
+-- would be picked up.
 ---@param blueprint bpgen.Blueprint
 ---@param machine_count integer
 ---@param names bpgen.Names
 local function add_belts(blueprint, machine_count, names)
-  for row = 0, machine_count * MACHINE_SIZE - 1 do
-    blueprint.add({name = names.belt, position = grid.position(INPUT_BELT_COLUMN, row), direction = defines.direction.south})
-    blueprint.add({name = names.belt, position = grid.position(OUTPUT_BELT_COLUMN, row), direction = defines.direction.south})
-  end
+  local last_inserter_row = (machine_count - 1) * MACHINE_SIZE
+  add_belt_column(blueprint, INPUT_BELT_COLUMN, last_inserter_row + 1, names)
+  add_belt_column(blueprint, OUTPUT_BELT_COLUMN, machine_count * MACHINE_SIZE, names)
 end
 
 -- The poles for one furnace go in the free tiles below its two inserters.

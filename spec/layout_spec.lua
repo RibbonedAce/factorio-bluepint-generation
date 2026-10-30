@@ -85,10 +85,10 @@ describe("layout", function()
       assert.are.equal(3, count_named(entities, NAMES.machine))
     end)
 
-    it("gives three furnaces twelve belts, because each furnace adds two rows to both belts", function()
+    it("gives three furnaces eleven belts: six for the output, five for the input that stops at the last inserter", function()
       local entities = layout.build(3, NAMES)
 
-      assert.are.equal(12, count_named(entities, NAMES.belt)) -- 3 furnaces x 2 rows x 2 belts
+      assert.are.equal(11, count_named(entities, NAMES.belt)) -- 3 furnaces x 2 rows = 6 output; the last inserter is in row 4, so 5 input
     end)
 
     it("gives three furnaces six inserters, one in and one out each", function()
@@ -121,10 +121,10 @@ describe("layout", function()
       assert.are.equal(6, count_named(entities, NAMES.pole))
     end)
 
-    it("makes exactly 25 entities for three furnaces, with nothing else added", function()
+    it("makes exactly 24 entities for three furnaces, with nothing else added", function()
       local entities = layout.build(3, NAMES)
 
-      assert.are.equal(25, #entities) -- 3 furnaces + 12 belts + 6 inserters + 4 poles
+      assert.are.equal(24, #entities) -- 3 furnaces + 11 belts + 6 inserters + 4 poles
     end)
 
     it("numbers the entities 1 to n in order, one number each", function()
@@ -134,21 +134,30 @@ describe("layout", function()
       for _, entity in ipairs(entities) do
         numbers[#numbers + 1] = entity.entity_number
       end
-      assert.are.same({1, 2, 3, 4, 5, 6, 7, 8, 9}, numbers) -- 4 belts + furnace + 2 inserters + 2 poles
+      assert.are.same({1, 2, 3, 4, 5, 6, 7, 8}, numbers) -- 3 belts + furnace + 2 inserters + 2 poles
     end)
   end)
 
   describe("where things stand", function()
-    it("makes both belts run the full four tiles for two furnaces, side by side", function()
+    it("makes the output belt four tiles long for two furnaces and the input belt three, ending at the last input inserter", function()
       local entities = layout.build(2, NAMES)
 
       local belts = entities_named(entities, NAMES.belt)
 
       assert.are.same({
-        {x = 0, y = 0}, {x = 5, y = 0},
-        {x = 0, y = 1}, {x = 5, y = 1},
-        {x = 0, y = 2}, {x = 5, y = 2},
-        {x = 0, y = 3}, {x = 5, y = 3},
+        {x = 0, y = 0}, {x = 0, y = 1}, {x = 0, y = 2}, -- the second furnace's input inserter is in row 2
+        {x = 5, y = 0}, {x = 5, y = 1}, {x = 5, y = 2}, {x = 5, y = 3},
+      }, tiles_of(belts))
+    end)
+
+    it("makes the input belt a single tile for one furnace, level with its input inserter", function()
+      local entities = layout.build(1, NAMES)
+
+      local belts = entities_named(entities, NAMES.belt)
+
+      assert.are.same({
+        {x = 0, y = 0},
+        {x = 5, y = 0}, {x = 5, y = 1},
       }, tiles_of(belts))
     end)
 
@@ -158,7 +167,7 @@ describe("layout", function()
       local belts = entities_named(entities, NAMES.belt)
 
       local south = defines.direction.south
-      assert.are.same({south, south, south, south}, directions_of(belts))
+      assert.are.same({south, south, south}, directions_of(belts))
     end)
 
     it("reads input belt, input inserter, furnace, output inserter, output belt along the first furnace's top row", function()
