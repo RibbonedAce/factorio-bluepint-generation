@@ -82,7 +82,8 @@ Layout code and tests think in tiles, not centres, so there are no `+ 0.5` fudge
 5. **Runtime `belt_speed`.** The generator treats `prototypes.entity["transport-belt"].belt_speed` as the same raw value the prototype docs call `speed` (0.03125 for the standard belt). The runtime docs say only "the speed of this transport belt". To check in game: ask for a rate above the limit (for example 1000 per minute); the message must say the maximum is 450 per minute. A different number means the unit differs.
 6. **Dotted `require`** (`require("scripts.generator")`) is used for the first time. It follows the 2.0 wiki tutorial and passed under busted; confirm in 2.1.
 7. **Item picker filter** (`elem_filters` by name) is verified against the JSON but untested in game.
-8. Whether `set_blueprint_entities` repositions entities (the `fix_positions` default is not documented); the layout keeps entities on valid tile positions either way.
+8. **Temporary cursor blueprint** (owner request 2026-10-29: the blueprint must not take an inventory slot). `control.lua` sets `player.cursor_stack_temporary = true` after `set_stack("blueprint")`. The attribute exists (read/write boolean, see `research/api-reference-2.1.23.md`), but WHEN to set it (before or after `set_stack`), and whether pasting works with it, are untested in 2.1: a 1.1.74 forum report says paste wrongly reported a pasted blueprint as not temporary (fixed by staff the next release). If the blueprint still lands in the inventory, try setting the flag before `set_stack`, or ask the owner to attach `runtime-api.json` so the docs text for the attribute can be read.
+9. Whether `set_blueprint_entities` repositions entities (the `fix_positions` default is not documented); the layout keeps entities on valid tile positions either way.
 
 ## Risks and flags
 

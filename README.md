@@ -8,7 +8,7 @@ Status: early development.
 
 1. Click the "Generate blueprint" button in the shortcut bar.
 2. Choose the item to produce (iron plate is already selected) and enter a rate in items per minute.
-3. Click Generate. The blueprint appears on your cursor. Place it, put the inputs on the input belt (the message says which item goes on which lane) and connect the poles to your power network.
+3. Click Generate. The blueprint appears on your cursor. It is temporary, like a blueprint taken from the library: it takes no inventory space, and it disappears if you put it away without placing it (generate it again if that happens). Place it, put the inputs on the input belt (the message says which item goes on which lane) and connect the poles to your power network.
 
 ## What can be generated
 

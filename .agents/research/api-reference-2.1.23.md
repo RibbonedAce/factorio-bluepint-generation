@@ -33,7 +33,7 @@ Source: `runtime-api.json` and `prototype-api.json`, supplied by the owner on 20
 
 ## Cursor and blueprint items
 
-- `LuaControl.cursor_stack` (a `LuaItemStack`, may be nil), `is_cursor_blueprint()`, `is_cursor_empty()`. `LuaPlayer.clear_cursor()`; `LuaPlayer.cursor_stack_temporary` (read/write boolean).
+- `LuaControl.cursor_stack` (a `LuaItemStack`, may be nil), `is_cursor_blueprint()`, `is_cursor_empty()`. `LuaPlayer.clear_cursor()`; `LuaPlayer.cursor_stack_temporary` (read/write boolean; its description text was not read). **Secondary** (forum, 2026-10-29): a temporary cursor stack is removed, not returned to the inventory, when the cursor is cleared; blueprints from the library behave this way ([Allow temporary cursor stack for selection tool](https://forums.factorio.com/viewtopic.php?p=669249), [Paste doesn't work with cursor_stack_temporary, 1.1.74](https://forums.factorio.com/104354)).
 - `LuaItemStack.set_stack(stack?)` returns a boolean; `can_set_stack(stack?)` checks first. The argument is an `ItemStackIdentification`: a string (the item name, meaning a full stack), an `ItemStackDefinition`, or a `LuaItemStack`.
 - `LuaItemStack.import_stack(data: string)` returns an int: 0 = succeeded, -1 = succeeded with errors, 1 = failed. `export_stack()` returns a string. They support blueprint, blueprint-book, deconstruction-planner, upgrade-planner and item-with-tags.
 - The blueprint methods live on `LuaItemCommon`, the parent of `LuaItemStack`:

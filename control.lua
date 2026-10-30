@@ -122,6 +122,10 @@ local function generate_blueprint(player)
     return
   end
 
+  -- A temporary cursor stack is deleted when the player clears the cursor, instead
+  -- of being put into their inventory (like a blueprint taken from the library).
+  player.cursor_stack_temporary = true
+
   cursor.set_blueprint_entities(result.entities)
   cursor.blueprint_description = result.description
 
