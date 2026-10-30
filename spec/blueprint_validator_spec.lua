@@ -8,6 +8,9 @@
 -- growing downward (see scripts/grid.lua). The 2x2 furnace at (2, 0) covers
 -- tiles x 2 to 3 and y 0 to 1. An inserter at (1, 0) facing west picks up from
 -- tile (0, 0) and drops onto tile (2, 0).
+---@diagnostic disable: undefined-field  -- luassert's `assert` has fields (`assert.are`, `assert.is_nil`, ...) the editor cannot see
+---@diagnostic disable: need-check-nil  -- entities come from `blueprint_of`, which numbers every one
+---@diagnostic disable: param-type-mismatch  -- some entities are damaged on purpose, and the fake `defines` holds strings, not Factorio's numbers
 
 local builders = require("spec.support.builders")
 local validator = require("spec.support.blueprint_validator")

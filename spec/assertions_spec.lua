@@ -1,6 +1,7 @@
 -- spec/assertions_spec.lua
 -- The custom assertions get specs too: each must accept what it should AND
 -- reject what it should, or a broken assertion would quietly pass everything.
+---@diagnostic disable: undefined-field  -- luassert's `assert` has fields (`assert.are`, `assert.is_nil`, ...) the editor cannot see
 
 describe("has_item_containing", function()
   it("passes when one item in the list contains the text", function()

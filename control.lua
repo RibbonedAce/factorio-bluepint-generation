@@ -22,6 +22,7 @@ local CLOSE_BUTTON_NAME = "blueprint-generation-close"
 
 -- Remove our window if it is open. `player.gui.screen[FRAME_NAME]` looks up a
 -- direct child of the screen by name; it is nil when there is no such child.
+---@param player LuaPlayer
 local function close_window(player)
   local frame = player.gui.screen[FRAME_NAME]
   if frame then
@@ -42,6 +43,7 @@ end
 -- Build the window. Everything the player can type or pick is a direct child
 -- of `frame`, so Generate can find it again by name later. That means the GUI
 -- itself remembers its state and we never need Factorio's `storage` table.
+---@param player LuaPlayer
 local function open_window(player)
   close_window(player) -- never end up with two windows
 
@@ -79,6 +81,7 @@ local function open_window(player)
 end
 
 -- Read what the player entered, generate the blueprint and put it on their cursor.
+---@param player LuaPlayer
 local function generate_blueprint(player)
   local frame = player.gui.screen[FRAME_NAME]
   if not frame then

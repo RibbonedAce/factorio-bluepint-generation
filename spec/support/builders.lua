@@ -11,6 +11,7 @@ local grid = require("scripts.grid")
 local builders = {}
 
 -- The prototype names the layout is given. They are labels here, nothing more.
+---@type bpgen.Names
 builders.NAMES = {
   machine = "stone-furnace",
   belt = "transport-belt",
@@ -19,6 +20,9 @@ builders.NAMES = {
 }
 
 -- `{name = "iron-ore", amount = 1}` written as `amount_of(1, "iron-ore")`.
+---@param amount number
+---@param name string
+---@return bpgen.RecipeItem
 function builders.amount_of(amount, name)
   return {name = name, amount = amount}
 end
@@ -34,25 +38,42 @@ end
 local MACHINE_SIZE = 2
 
 -- Belts default to running south, like the generated ones; pass a direction to change that.
+---@param tile_x number
+---@param tile_y number
+---@param direction? defines.direction  default south
+---@return table  an entity without its number yet (see `blueprint_of`)
 function builders.belt(tile_x, tile_y, direction)
   return {name = builders.NAMES.belt, position = grid.position(tile_x, tile_y), direction = direction or defines.direction.south}
 end
 
+---@param tile_x number
+---@param tile_y number
+---@return table  an entity without its number yet (see `blueprint_of`)
 function builders.furnace(tile_x, tile_y)
   return {name = builders.NAMES.machine, position = grid.position(tile_x, tile_y, MACHINE_SIZE, MACHINE_SIZE)}
 end
 
+---@param tile_x number
+---@param tile_y number
+---@param direction? defines.direction
+---@return table  an entity without its number yet (see `blueprint_of`)
 function builders.inserter(tile_x, tile_y, direction)
   return {name = builders.NAMES.inserter, position = grid.position(tile_x, tile_y), direction = direction}
 end
 
 -- Poles can be given another prototype name, for tests that need a second kind of pole.
+---@param tile_x number
+---@param tile_y number
+---@param name? string  another pole prototype name
+---@return table  an entity without its number yet (see `blueprint_of`)
 function builders.pole(tile_x, tile_y, name)
   return {name = name or builders.NAMES.pole, position = grid.position(tile_x, tile_y)}
 end
 
 -- Gives the entities their numbers (1, 2, 3, ... in the order passed) and
 -- returns them as a list, the way a blueprint holds them.
+---@param ... table  entities from the builders above
+---@return bpgen.Entity[]
 function builders.blueprint_of(...)
   local entities = {...}
   for index, entity in ipairs(entities) do
@@ -63,9 +84,12 @@ end
 
 -- Adds a copper wire from pole `from` to pole `to`. Both must already be numbered
 -- (see `blueprint_of`). The wire is stored on `from`, as the layout stores it.
+---@param from bpgen.Entity  already numbered
+---@param to bpgen.Entity  already numbered
 function builders.wire_between(from, to)
   local connector = defines.wire_connector_id.pole_copper
   from.wires = from.wires or {}
+  ---@diagnostic disable-next-line: assign-type-mismatch  -- the fake `defines` uses strings, not Factorio's numbers
   from.wires[#from.wires + 1] = {from.entity_number, connector, to.entity_number, connector}
 end
 
@@ -77,6 +101,8 @@ end
 --   pole_supply_radius   default 2.5
 --   pole_wire_reach      default 7.5
 --   machine_needs_power  default false
+---@param options? {pole_supply_radius?: number, pole_wire_reach?: number, machine_needs_power?: boolean}
+---@return table<string, bpgen.CatalogEntry>
 function builders.a_catalog(options)
   options = options or {}
   local names = builders.NAMES
@@ -101,6 +127,8 @@ end
 --   belt_speed      the transport belt's speed, default 0.03125
 --   recipe_energy   seconds per craft of the plate recipes, default 3.2
 -- The result can be changed afterwards, for example `fake.entity["inserter"] = nil`.
+---@param options? {furnace_speed?: number, belt_speed?: number, recipe_energy?: number}
+---@return table  a stand-in for the game's `prototypes`
 function builders.fake_prototypes(options)
   options = options or {}
   local furnace_speed = options.furnace_speed or 1

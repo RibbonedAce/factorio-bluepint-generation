@@ -8,6 +8,9 @@
 -- Busted runs each spec file in its own sandbox, where a plain assignment would
 -- only be visible inside the spec. The generator reads the REAL global
 -- `prototypes`, so the specs assign `_G.prototypes` explicitly.
+---@diagnostic disable: undefined-field  -- luassert's `assert` has fields (`assert.are`, `assert.is_nil`, ...) the editor cannot see
+---@diagnostic disable: need-check-nil  -- the assertion before each use fails the test first if the result is nil
+---@diagnostic disable: global-in-non-module  -- `_G.prototypes = ...` is how a spec fakes the game's global (see the note above)
 
 local builders = require("spec.support.builders")
 local generator = require("scripts.generator")

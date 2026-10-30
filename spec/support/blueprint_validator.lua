@@ -262,6 +262,7 @@ local function new_network(poles)
     end
   end
 
+  ---@return integer
   function network.count()
     local roots, count = {}, 0
     for number in pairs(parent) do
@@ -326,6 +327,17 @@ end
 
 --------------------------------------------------------------------------------
 
+---@class bpgen.CatalogEntry  what the validator knows about one entity name
+---@field kind "belt"|"machine"|"inserter"|"pole"
+---@field width number  tiles
+---@field height number  tiles
+---@field needs_power? boolean
+---@field supply_radius? number  poles only
+---@field wire_reach? number  poles only
+
+---@param entities table[]  normally bpgen.Entity, but damaged ones (no number, no position) are what it exists to report
+---@param catalog table<string, bpgen.CatalogEntry>  keyed by entity name
+---@return string[] problems  empty when the blueprint passed
 function validator.validate(entities, catalog)
   local problems = {}
   local index = index_entities(entities, catalog, problems)

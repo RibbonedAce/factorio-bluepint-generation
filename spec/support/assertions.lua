@@ -5,10 +5,15 @@
 --     assert.has_item_containing("overlaps", problems)
 --     assert.is_not.has_item_containing("overlaps", problems)
 
+---@diagnostic disable-next-line: unresolved-require  -- busted's own libraries, installed with LuaRocks, not in this repo
 local assert = require("luassert")
+---@diagnostic disable-next-line: unresolved-require  -- as above
 local say = require("say")
 
 -- A list in which at least one string contains `text` (plain text, not a pattern).
+---@param _ table  luassert's state, unused
+---@param arguments any[]  {text, list}
+---@return boolean
 local function has_item_containing(_, arguments)
   local text, list = arguments[1], arguments[2]
   if type(text) ~= "string" or type(list) ~= "table" then

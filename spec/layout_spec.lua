@@ -4,6 +4,7 @@
 -- down; see scripts/grid.lua): x = 0 input belt, 1 input inserters, 2 furnace
 -- (covering columns 2 and 3), 4 output inserters, 5 output belt. Every furnace is
 -- two tiles tall, so furnace number i (from 0) starts at y = 2i.
+---@diagnostic disable: undefined-field  -- luassert's `assert` has fields (`assert.are`, `assert.is_nil`, ...) the editor cannot see
 
 local builders = require("spec.support.builders")
 local layout = require("scripts.layout")

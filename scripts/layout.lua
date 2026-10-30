@@ -38,6 +38,16 @@ local MACHINES_PER_POLE = 2  -- a small pole's supply area covers two furnaces' 
 
 -- A blueprint under construction. `add` stores an entity and numbers it, because
 -- blueprints identify entities by number; `connect` records a copper wire.
+---@class bpgen.Blueprint  a blueprint under construction
+---@field entities bpgen.Entity[]
+---@field add fun(entity: bpgen.NewEntity): bpgen.Entity  numbers the entity and stores it
+---@field connect fun(from: bpgen.Entity, to: bpgen.Entity)  adds a copper wire
+
+---@class bpgen.Poles  the poles added so far, top to bottom
+---@field input table<integer, bpgen.Entity>
+---@field output table<integer, bpgen.Entity>
+
+---@return bpgen.Blueprint
 local function new_blueprint()
   local blueprint = {entities = {}}
 
@@ -59,6 +69,9 @@ local function new_blueprint()
 end
 
 -- Both belts run south (down the page), the full height of the column.
+---@param blueprint bpgen.Blueprint
+---@param machine_count integer
+---@param names bpgen.Names
 local function add_belts(blueprint, machine_count, names)
   for row = 0, machine_count * MACHINE_SIZE - 1 do
     blueprint.add({name = names.belt, position = grid.position(INPUT_BELT_COLUMN, row), direction = defines.direction.south})
@@ -67,6 +80,10 @@ local function add_belts(blueprint, machine_count, names)
 end
 
 -- The poles for one furnace go in the free tiles below its two inserters.
+---@param blueprint bpgen.Blueprint
+---@param top integer  tile row of the furnace's top edge
+---@param names bpgen.Names
+---@param poles bpgen.Poles  gets the new poles appended
 local function add_poles(blueprint, top, names, poles)
   local row = top + 1
   poles.input[#poles.input + 1] = blueprint.add({name = names.pole, position = grid.position(INPUT_INSERTER_COLUMN, row)})
@@ -75,6 +92,10 @@ end
 
 -- One furnace with its two inserters, and its poles if it is one of those that get them.
 -- `index` counts furnaces from 0 down the column.
+---@param blueprint bpgen.Blueprint
+---@param index integer
+---@param names bpgen.Names
+---@param poles bpgen.Poles
 local function add_machine_row(blueprint, index, names, poles)
   local top = index * MACHINE_SIZE -- tile row of the furnace's top edge
 
@@ -91,6 +112,10 @@ local function add_machine_row(blueprint, index, names, poles)
 end
 
 -- Returns the poles added, as {input = {...}, output = {...}}, top to bottom.
+---@param blueprint bpgen.Blueprint
+---@param machine_count integer
+---@param names bpgen.Names
+---@return bpgen.Poles
 local function add_machines(blueprint, machine_count, names)
   local poles = {input = {}, output = {}}
   for index = 0, machine_count - 1 do
@@ -100,16 +125,22 @@ local function add_machines(blueprint, machine_count, names)
 end
 
 -- Chain the poles down each side, then join the two sides at the top.
+---@param blueprint bpgen.Blueprint
+---@param poles bpgen.Poles
 local function wire_poles(blueprint, poles)
   for i = 2, #poles.input do
     blueprint.connect(poles.input[i - 1], poles.input[i])
     blueprint.connect(poles.output[i - 1], poles.output[i])
   end
+  -- `layout.build` needs at least one machine, so there is a first pole on each side.
   blueprint.connect(poles.input[1], poles.output[1])
 end
 
 -- names: {machine, belt, inserter, pole} prototype names.
 -- Returns a list of blueprint entities (tables with entity_number, name, position, ...).
+---@param machine_count integer  at least 1
+---@param names bpgen.Names
+---@return bpgen.Entity[]
 function layout.build(machine_count, names)
   local blueprint = new_blueprint()
   add_belts(blueprint, machine_count, names)

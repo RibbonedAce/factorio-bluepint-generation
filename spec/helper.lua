@@ -9,9 +9,12 @@
 -- make failures readable. Specs that need `prototypes` assign their own fake
 -- (see spec/support/builders.lua).
 
-_G.defines = {
+-- `rawset(_G, ...)` instead of `_G.defines = ...`: the result is the same at run
+-- time, but the editor does not take it as the declaration of `defines`, so it
+-- keeps using Factorio's real types for the production code.
+rawset(_G, "defines", {
   direction = {north = "north", east = "east", south = "south", west = "west"},
   wire_connector_id = {pole_copper = "pole_copper"},
-}
+})
 
 require("spec.support.assertions")

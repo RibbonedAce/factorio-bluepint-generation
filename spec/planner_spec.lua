@@ -2,6 +2,8 @@
 -- How many machines does a rate need? The arithmetic behind the numbers is
 -- written next to the test that relies on it: one furnace with speed 1 and a
 -- 3.2 s recipe crafts 60 / 3.2 = 18.75 times a minute.
+---@diagnostic disable: undefined-field  -- luassert's `assert` has fields (`assert.are`, `assert.is_nil`, ...) the editor cannot see
+---@diagnostic disable: need-check-nil  -- the assertion before each use fails the test first if the plan is nil
 
 local planner = require("scripts.planner")
 local builders = require("spec.support.builders")

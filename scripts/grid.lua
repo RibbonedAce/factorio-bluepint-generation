@@ -15,12 +15,21 @@
 local grid = {}
 
 -- The centre position of an entity whose top-left tile is (tile_x, tile_y).
+---@param tile_x number
+---@param tile_y number
+---@param width? number  tiles, default 1
+---@param height? number  tiles, default 1
+---@return bpgen.Position
 function grid.position(tile_x, tile_y, width, height)
   return {x = tile_x + (width or 1) / 2, y = tile_y + (height or 1) / 2}
 end
 
 -- The top-left tile of an entity centred at `position`. The numbers are not whole
 -- if the entity is not lined up with the tile grid.
+---@param position bpgen.Position
+---@param width? number  tiles, default 1
+---@param height? number  tiles, default 1
+---@return bpgen.Tile
 function grid.top_left_tile(position, width, height)
   return {x = position.x - (width or 1) / 2, y = position.y - (height or 1) / 2}
 end

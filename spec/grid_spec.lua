@@ -2,6 +2,7 @@
 -- A tile is the top-left tile an entity covers; a position is its centre.
 -- The expected numbers are written out by hand, so a mistake in grid.lua cannot
 -- hide behind the same mistake elsewhere.
+---@diagnostic disable: undefined-field  -- luassert's `assert` has fields (`assert.are`, `assert.is_nil`, ...) the editor cannot see
 
 local grid = require("scripts.grid")
 

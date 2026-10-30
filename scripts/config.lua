@@ -6,7 +6,12 @@
 -- A file that ends with `return <value>` is a "module": `require` runs the file
 -- once and hands that value to whoever asked for it.
 
-return {
+---@class bpgen.Config
+---@field entities {belt: string, inserter: string, pole: string}
+---@field products table<string, bpgen.Product>  keyed by the product item's name
+
+---@type bpgen.Config
+local config = {
   -- The first-tier building blocks used in every blueprint.
   entities = {
     belt = "transport-belt",
@@ -21,3 +26,5 @@ return {
     ["copper-plate"] = {recipe = "copper-plate", machine = "stone-furnace", fuel = "coal"},
   },
 }
+
+return config
