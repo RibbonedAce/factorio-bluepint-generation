@@ -16,12 +16,14 @@ Status: early development.
 |---|---|---|
 | Iron plate | Stone furnace | Iron ore on one lane, coal on the other |
 | Copper plate | Stone furnace | Copper ore on one lane, coal on the other |
+| Stone brick | Stone furnace | Stone on one lane, coal on the other |
 
 Every blueprint is one column of furnaces: an input belt on the left, inserters, the furnaces, output inserters, and an output belt on the right. Small electric poles are placed and wired for you. The belts, inserters and poles are the first-tier ones (transport belt, inserter, small electric pole); there is no choice of tier yet.
 
 ## Limits
 
-- **One belt lane per flow.** The input ore and the output plates each travel on a single lane of a transport belt. A lane carries 450 items per minute, and a stone furnace makes 18.75 plates per minute, so one blueprint can have at most 24 furnaces and make at most 450 plates per minute. A higher rate is refused with a message that names the most one blueprint can make. Splitting a bigger request into several blueprints is not supported.
+- **One belt lane per flow.** The input (ore or stone) and the output each travel on a single lane of a transport belt. A lane carries 450 items per minute, and a stone furnace makes 18.75 plates or bricks per minute, so one blueprint can have at most 24 furnaces and make at most 450 per minute. A higher rate is refused with a message that names the most one blueprint can make. Splitting a bigger request into several blueprints is not supported.
+- **Stone bricks hit the limit sooner.** A brick takes two stone, so each furnace eats 37.5 stone per minute and the input lane fills first: at most 12 furnaces and 225 bricks per minute.
 - **The rate is rounded up to whole furnaces.** Asking for 100 plates per minute builds 6 furnaces, which make 112.5 per minute. The message shows both numbers.
 - **You supply the inputs.** The blueprint contains no mining, no ore sources and no coal supply, only the column itself.
 - **You supply the power.** The poles are connected to each other, not to your network.

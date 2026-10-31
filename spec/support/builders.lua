@@ -125,7 +125,7 @@ end
 -- Options (all optional):
 --   furnace_speed   the stone furnace's crafting speed, default 1
 --   belt_speed      the transport belt's speed, default 0.03125
---   recipe_energy   seconds per craft of the plate recipes, default 3.2
+--   recipe_energy   seconds per craft of the plate and brick recipes, default 3.2
 -- The result can be changed afterwards, for example `fake.entity["inserter"] = nil`.
 ---@param options? {furnace_speed?: number, belt_speed?: number, recipe_energy?: number}
 ---@return table  a stand-in for the game's `prototypes`
@@ -142,12 +142,12 @@ function builders.fake_prototypes(options)
       belt_speed = speed,
     }
   end
-  local function recipe(ore)
-    local plate = (ore:gsub("%-ore$", "-plate")) -- "iron-ore" -> "iron-plate"
+  -- A recipe that turns `amount` of `ingredient` into one `product`.
+  local function recipe(ingredient, amount, product)
     return {
       energy = recipe_energy,
-      ingredients = {{type = "item", name = ore, amount = 1}},
-      products = {{type = "item", name = plate, amount = 1}},
+      ingredients = {{type = "item", name = ingredient, amount = amount}},
+      products = {{type = "item", name = product, amount = 1}},
       get_product_amount = function() return 1 end,
     }
   end
@@ -163,12 +163,14 @@ function builders.fake_prototypes(options)
       ["small-electric-pole"] = entity("small-electric-pole", nil, nil),
     },
     recipe = {
-      ["iron-plate"] = recipe("iron-ore"),
-      ["copper-plate"] = recipe("copper-ore"),
+      ["iron-plate"] = recipe("iron-ore", 1, "iron-plate"),
+      ["copper-plate"] = recipe("copper-ore", 1, "copper-plate"),
+      ["stone-brick"] = recipe("stone", 2, "stone-brick"),
     },
     item = {
       ["iron-plate"] = item("iron-plate"), ["copper-plate"] = item("copper-plate"),
       ["iron-ore"] = item("iron-ore"), ["copper-ore"] = item("copper-ore"),
+      ["stone"] = item("stone"), ["stone-brick"] = item("stone-brick"),
       ["coal"] = item("coal"),
     },
   }

@@ -77,6 +77,42 @@ describe("generator", function()
     end)
   end)
 
+  describe("stone bricks, which eat two stone each", function()
+    it("needs three furnaces for 50 stone bricks a minute", function()
+      _G.prototypes = fake_prototypes{furnace_speed = 1, recipe_energy = 3.2}
+
+      local result = generator.generate("stone-brick", 50)
+
+      assert.are.equal(3, count_named(result.entities, "stone-furnace")) -- 50 / 18.75 = 2.67, rounded up
+    end)
+
+    it("asks for stone, not ore, in the message", function()
+      _G.prototypes = fake_prototypes{furnace_speed = 1, recipe_energy = 3.2}
+
+      local result = generator.generate("stone-brick", 50)
+
+      assert.are.same({"item-name.stone-brick"}, result.message[5])
+      assert.are.same({"item-name.stone"}, result.message[7])
+    end)
+
+    it("allows exactly 225 bricks a minute with 12 furnaces, which fill the stone lane", function()
+      _G.prototypes = fake_prototypes{belt_speed = 0.03125, furnace_speed = 1, recipe_energy = 3.2}
+
+      local result = generator.generate("stone-brick", 225)
+
+      assert.are.equal(12, count_named(result.entities, "stone-furnace")) -- 12 x 37.5 stone = 450, one lane
+    end)
+
+    it("refuses 300 bricks a minute, naming 225 as the most, because the stone lane fills before the brick lane", function()
+      _G.prototypes = fake_prototypes{belt_speed = 0.03125, furnace_speed = 1, recipe_energy = 3.2}
+
+      local result, error_message = generator.generate("stone-brick", 300)
+
+      assert.is_nil(result)
+      assert.are.same({"blueprint-generation.error-rate-too-high", "225"}, error_message) -- 12 furnaces x 18.75
+    end)
+  end)
+
   describe("what the player is told", function()
     it("names the furnaces, the real rate achieved, the ore and the fuel in the message", function()
       _G.prototypes = fake_prototypes{furnace_speed = 1, recipe_energy = 3.2}

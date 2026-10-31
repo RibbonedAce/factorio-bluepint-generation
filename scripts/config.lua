@@ -25,6 +25,7 @@ local config = {
   products = {
     ["iron-plate"] = {recipe = "iron-plate", machine = "stone-furnace", fuel = "coal"},
     ["copper-plate"] = {recipe = "copper-plate", machine = "stone-furnace", fuel = "coal"},
+    ["stone-brick"] = {recipe = "stone-brick", machine = "stone-furnace", fuel = "coal"},
   },
 
   -- The item already picked when the window opens.
