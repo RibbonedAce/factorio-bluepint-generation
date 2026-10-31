@@ -2,8 +2,11 @@
 -- The generator reads the game's prototype data (here a stand-in assigned to
 -- the global `prototypes`) and ties the planner and layout together.
 --
--- Unless a test says otherwise, the plate recipes take 3.2 s and a stone furnace
--- has speed 1, so one furnace makes 60 / 3.2 = 18.75 plates a minute.
+-- Each test says which prototypes exist: the recipe it needs, and the furnace and
+-- belt speeds its numbers depend on. A furnace of speed 1 on a 3.2 s recipe makes
+-- 60 / 3.2 = 18.75 items a minute. Which items can be generated is decided by
+-- scripts/config.lua, so the tests use `iron-plate` and `stone-brick` for the two
+-- recipe shapes; the shapes, not the names, are what is being tested.
 --
 -- Busted runs each spec file in its own sandbox, where a plain assignment would
 -- only be visible inside the spec. The generator reads the REAL global
@@ -16,6 +19,8 @@ local builders = require("spec.support.builders")
 local generator = require("scripts.generator")
 
 local fake_prototypes = builders.fake_prototypes
+local a_recipe = builders.a_recipe
+local amount_of = builders.amount_of
 
 local function count_named(entities, name)
   local total = 0
@@ -41,9 +46,12 @@ local function distinct_names_of(entities)
 end
 
 describe("generator", function()
-  describe("what gets built", function()
-    it("needs three stone furnaces for 50 iron plates a minute", function()
-      _G.prototypes = fake_prototypes{furnace_speed = 1, recipe_energy = 3.2}
+  describe("a recipe of one ingredient to one product", function()
+    it("needs three stone furnaces for 50 items a minute", function()
+      _G.prototypes = fake_prototypes{
+        furnace_speed = 1,
+        recipes = {["iron-plate"] = a_recipe{energy = 3.2, ingredients = {amount_of(1, "iron-ore")}, products = {amount_of(1, "iron-plate")}}},
+      }
 
       local result = generator.generate("iron-plate", 50)
 
@@ -51,7 +59,10 @@ describe("generator", function()
     end)
 
     it("brings four small electric poles with three furnaces", function()
-      _G.prototypes = fake_prototypes{furnace_speed = 1, recipe_energy = 3.2}
+      _G.prototypes = fake_prototypes{
+        furnace_speed = 1,
+        recipes = {["iron-plate"] = a_recipe{energy = 3.2, ingredients = {amount_of(1, "iron-ore")}, products = {amount_of(1, "iron-plate")}}},
+      }
 
       local result = generator.generate("iron-plate", 50)
 
@@ -59,7 +70,9 @@ describe("generator", function()
     end)
 
     it("uses only the four buildings the game provides, each under its own name", function()
-      _G.prototypes = fake_prototypes{}
+      _G.prototypes = fake_prototypes{
+        recipes = {["iron-plate"] = a_recipe{energy = 3.2, ingredients = {amount_of(1, "iron-ore")}, products = {amount_of(1, "iron-plate")}}},
+      }
 
       local result = generator.generate("iron-plate", 50)
 
@@ -68,54 +81,11 @@ describe("generator", function()
         distinct_names_of(result.entities))
     end)
 
-    it("needs one furnace for 18.75 copper plates a minute", function()
-      _G.prototypes = fake_prototypes{furnace_speed = 1, recipe_energy = 3.2}
-
-      local result = generator.generate("copper-plate", 18.75)
-
-      assert.are.equal(1, count_named(result.entities, "stone-furnace"))
-    end)
-  end)
-
-  describe("stone bricks, which eat two stone each", function()
-    it("needs three furnaces for 50 stone bricks a minute", function()
-      _G.prototypes = fake_prototypes{furnace_speed = 1, recipe_energy = 3.2}
-
-      local result = generator.generate("stone-brick", 50)
-
-      assert.are.equal(3, count_named(result.entities, "stone-furnace")) -- 50 / 18.75 = 2.67, rounded up
-    end)
-
-    it("asks for stone, not ore, in the message", function()
-      _G.prototypes = fake_prototypes{furnace_speed = 1, recipe_energy = 3.2}
-
-      local result = generator.generate("stone-brick", 50)
-
-      assert.are.same({"item-name.stone-brick"}, result.message[5])
-      assert.are.same({"item-name.stone"}, result.message[7])
-    end)
-
-    it("allows exactly 225 bricks a minute with 12 furnaces, which fill the stone lane", function()
-      _G.prototypes = fake_prototypes{belt_speed = 0.03125, furnace_speed = 1, recipe_energy = 3.2}
-
-      local result = generator.generate("stone-brick", 225)
-
-      assert.are.equal(12, count_named(result.entities, "stone-furnace")) -- 12 x 37.5 stone = 450, one lane
-    end)
-
-    it("refuses 300 bricks a minute, naming 225 as the most, because the stone lane fills before the brick lane", function()
-      _G.prototypes = fake_prototypes{belt_speed = 0.03125, furnace_speed = 1, recipe_energy = 3.2}
-
-      local result, error_message = generator.generate("stone-brick", 300)
-
-      assert.is_nil(result)
-      assert.are.same({"blueprint-generation.error-rate-too-high", "225"}, error_message) -- 12 furnaces x 18.75
-    end)
-  end)
-
-  describe("what the player is told", function()
-    it("names the furnaces, the real rate achieved, the ore and the fuel in the message", function()
-      _G.prototypes = fake_prototypes{furnace_speed = 1, recipe_energy = 3.2}
+    it("names the furnaces, the real rate achieved, the ingredient and the fuel in the message", function()
+      _G.prototypes = fake_prototypes{
+        furnace_speed = 1,
+        recipes = {["iron-plate"] = a_recipe{energy = 3.2, ingredients = {amount_of(1, "iron-ore")}, products = {amount_of(1, "iron-plate")}}},
+      }
 
       local result = generator.generate("iron-plate", 50)
 
@@ -131,16 +101,11 @@ describe("generator", function()
       }, result.message)
     end)
 
-    it("asks for copper ore in the message when copper plate was requested", function()
-      _G.prototypes = fake_prototypes{furnace_speed = 1, recipe_energy = 3.2}
-
-      local result = generator.generate("copper-plate", 18.75)
-
-      assert.are.same({"item-name.copper-ore"}, result.message[7])
-    end)
-
     it("prints whole numbers without decimals", function()
-      _G.prototypes = fake_prototypes{furnace_speed = 1, recipe_energy = 3.2}
+      _G.prototypes = fake_prototypes{
+        furnace_speed = 1,
+        recipes = {["iron-plate"] = a_recipe{energy = 3.2, ingredients = {amount_of(1, "iron-ore")}, products = {amount_of(1, "iron-plate")}}},
+      }
 
       local result = generator.generate("iron-plate", 60)
 
@@ -149,11 +114,94 @@ describe("generator", function()
     end)
 
     it("gives the blueprint a description with the rate achieved and the furnaces used", function()
-      _G.prototypes = fake_prototypes{furnace_speed = 1, recipe_energy = 3.2}
+      _G.prototypes = fake_prototypes{
+        furnace_speed = 1,
+        recipes = {["iron-plate"] = a_recipe{energy = 3.2, ingredients = {amount_of(1, "iron-ore")}, products = {amount_of(1, "iron-plate")}}},
+      }
 
       local result = generator.generate("iron-plate", 50)
 
       assert.are.equal("iron-plate: 56.25 per minute from 3 x stone-furnace", result.description)
+    end)
+
+    it("refuses a rate above one belt lane, naming the standard belt's 450 a minute", function()
+      _G.prototypes = fake_prototypes{
+        belt_speed = 0.03125,
+        furnace_speed = 1,
+        recipes = {["iron-plate"] = a_recipe{energy = 3.2, ingredients = {amount_of(1, "iron-ore")}, products = {amount_of(1, "iron-plate")}}},
+      }
+
+      local result, error_message = generator.generate("iron-plate", 1000)
+
+      assert.is_nil(result)
+      assert.are.same({"blueprint-generation.error-rate-too-high", "450"}, error_message)
+    end)
+  end)
+
+  describe("a recipe of two of one ingredient to one product", function()
+    it("allows exactly 225 items a minute with 12 furnaces, which fill the ingredient lane", function()
+      _G.prototypes = fake_prototypes{
+        belt_speed = 0.03125,
+        furnace_speed = 1,
+        recipes = {["stone-brick"] = a_recipe{energy = 3.2, ingredients = {amount_of(2, "stone")}, products = {amount_of(1, "stone-brick")}}},
+      }
+
+      local result = generator.generate("stone-brick", 225)
+
+      assert.are.equal(12, count_named(result.entities, "stone-furnace")) -- 12 x 37.5 ingredients = 450, one lane
+    end)
+
+    it("refuses 300 items a minute, naming 225 as the most, because the ingredient lane fills before the product lane", function()
+      _G.prototypes = fake_prototypes{
+        belt_speed = 0.03125,
+        furnace_speed = 1,
+        recipes = {["stone-brick"] = a_recipe{energy = 3.2, ingredients = {amount_of(2, "stone")}, products = {amount_of(1, "stone-brick")}}},
+      }
+
+      local result, error_message = generator.generate("stone-brick", 300)
+
+      assert.is_nil(result)
+      assert.are.same({"blueprint-generation.error-rate-too-high", "225"}, error_message) -- 12 furnaces x 18.75
+    end)
+  end)
+
+  describe("a recipe of one ingredient to two products", function()
+    it("reads how many items a craft makes from the recipe, so 75 a minute needs two furnaces", function()
+      _G.prototypes = fake_prototypes{
+        furnace_speed = 1,
+        recipes = {["iron-plate"] = a_recipe{energy = 3.2, ingredients = {amount_of(1, "iron-ore")}, products = {amount_of(2, "iron-plate")}}},
+      }
+
+      local result = generator.generate("iron-plate", 75)
+
+      assert.are.equal(2, count_named(result.entities, "stone-furnace")) -- 75 / (18.75 crafts x 2 items)
+    end)
+  end)
+
+  describe("the belt's speed sets the limit, not a constant", function()
+    it("allows 800 items a minute on a belt twice as fast, with 43 furnaces", function()
+      _G.prototypes = fake_prototypes{
+        belt_speed = 0.0625, -- a lane holds 900 a minute
+        furnace_speed = 1,
+        recipes = {["iron-plate"] = a_recipe{energy = 3.2, ingredients = {amount_of(1, "iron-ore")}, products = {amount_of(1, "iron-plate")}}},
+      }
+
+      local result = generator.generate("iron-plate", 800)
+
+      assert.are.equal(43, count_named(result.entities, "stone-furnace")) -- 800 / 18.75 = 42.7, rounded up
+    end)
+
+    it("refuses 1000 items a minute on a belt twice as fast, naming 900 as the most", function()
+      _G.prototypes = fake_prototypes{
+        belt_speed = 0.0625,
+        furnace_speed = 1,
+        recipes = {["iron-plate"] = a_recipe{energy = 3.2, ingredients = {amount_of(1, "iron-ore")}, products = {amount_of(1, "iron-plate")}}},
+      }
+
+      local result, error_message = generator.generate("iron-plate", 1000)
+
+      assert.is_nil(result)
+      assert.are.same({"blueprint-generation.error-rate-too-high", "900"}, error_message) -- 48 furnaces x 18.75
     end)
   end)
 
@@ -167,19 +215,11 @@ describe("generator", function()
       assert.are.same({"blueprint-generation.error-unsupported-item"}, error_message)
     end)
 
-    it("refuses a rate above one belt lane, naming the standard belt's 450 a minute", function()
-      _G.prototypes = fake_prototypes{belt_speed = 0.03125}
-
-      local result, error_message = generator.generate("iron-plate", 1000)
-
-      assert.is_nil(result)
-      assert.are.same({"blueprint-generation.error-rate-too-high", "450"}, error_message)
-    end)
-
     it("refuses when a building prototype is missing", function()
-      local game = fake_prototypes{}
-      game.entity["inserter"] = nil
-      _G.prototypes = game
+      _G.prototypes = fake_prototypes{
+        missing_entities = {"inserter"},
+        recipes = {["iron-plate"] = a_recipe{energy = 3.2, ingredients = {amount_of(1, "iron-ore")}, products = {amount_of(1, "iron-plate")}}},
+      }
 
       local result, error_message = generator.generate("iron-plate", 10)
 
@@ -188,9 +228,7 @@ describe("generator", function()
     end)
 
     it("refuses when the recipe is missing", function()
-      local game = fake_prototypes{}
-      game.recipe["iron-plate"] = nil
-      _G.prototypes = game
+      _G.prototypes = fake_prototypes{recipes = {}}
 
       local result, error_message = generator.generate("iron-plate", 10)
 
@@ -198,10 +236,10 @@ describe("generator", function()
       assert.are.same({"blueprint-generation.error-missing-prototype"}, error_message)
     end)
 
-    it("refuses a recipe with two ingredients", function()
-      local game = fake_prototypes{}
-      game.recipe["iron-plate"].ingredients[2] = {type = "item", name = "coal", amount = 1}
-      _G.prototypes = game
+    it("refuses a recipe with two different ingredients", function()
+      _G.prototypes = fake_prototypes{
+        recipes = {["iron-plate"] = a_recipe{energy = 3.2, ingredients = {amount_of(1, "iron-ore"), amount_of(1, "coal")}, products = {amount_of(1, "iron-plate")}}},
+      }
 
       local result, error_message = generator.generate("iron-plate", 10)
 
@@ -210,9 +248,10 @@ describe("generator", function()
     end)
 
     it("refuses a machine that cannot craft", function()
-      local game = fake_prototypes{}
-      game.entity["stone-furnace"].get_crafting_speed = function() return nil end
-      _G.prototypes = game
+      _G.prototypes = fake_prototypes{
+        furnace_speed = false,
+        recipes = {["iron-plate"] = a_recipe{energy = 3.2, ingredients = {amount_of(1, "iron-ore")}, products = {amount_of(1, "iron-plate")}}},
+      }
 
       local result, error_message = generator.generate("iron-plate", 10)
 
@@ -221,33 +260,15 @@ describe("generator", function()
     end)
 
     it("refuses a belt entity without a belt speed", function()
-      local game = fake_prototypes{}
-      game.entity["transport-belt"].belt_speed = nil
-      _G.prototypes = game
+      _G.prototypes = fake_prototypes{
+        belt_speed = false,
+        recipes = {["iron-plate"] = a_recipe{energy = 3.2, ingredients = {amount_of(1, "iron-ore")}, products = {amount_of(1, "iron-plate")}}},
+      }
 
       local result, error_message = generator.generate("iron-plate", 10)
 
       assert.is_nil(result)
       assert.are.same({"blueprint-generation.error-missing-prototype"}, error_message)
-    end)
-  end)
-
-  describe("the belt's speed sets the limit, not a constant", function()
-    it("allows 800 plates a minute on a belt twice as fast, with 43 furnaces", function()
-      _G.prototypes = fake_prototypes{belt_speed = 0.0625, furnace_speed = 1, recipe_energy = 3.2} -- a lane holds 900 a minute
-
-      local result = generator.generate("iron-plate", 800)
-
-      assert.are.equal(43, count_named(result.entities, "stone-furnace")) -- 800 / 18.75 = 42.7, rounded up
-    end)
-
-    it("refuses 1000 plates a minute on a belt twice as fast, naming 900 as the most", function()
-      _G.prototypes = fake_prototypes{belt_speed = 0.0625, furnace_speed = 1, recipe_energy = 3.2}
-
-      local result, error_message = generator.generate("iron-plate", 1000)
-
-      assert.is_nil(result)
-      assert.are.same({"blueprint-generation.error-rate-too-high", "900"}, error_message) -- 48 furnaces x 18.75
     end)
   end)
 end)

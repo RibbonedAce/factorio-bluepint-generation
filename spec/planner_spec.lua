@@ -83,6 +83,16 @@ describe("planner", function()
       assert.near(150, plan.ingredient_per_minute, 1e-6) -- 4 furnaces x 18.75 crafts x 2 ore
     end)
 
+    it("makes twice the output per furnace for a recipe that makes two items per craft", function()
+      local recipe = {energy = 3.2, ingredients = {amount_of(1, "iron-ore")}, products = {amount_of(2, "iron-plate")}}
+
+      local plan = planner.plan("iron-plate", 75, recipe, 1, 450)
+
+      assert.are.equal(2, plan.machines) -- 75 / (18.75 crafts x 2 items) = 2
+      assert.near(75, plan.output_per_minute, 1e-6)
+      assert.near(37.5, plan.ingredient_per_minute, 1e-6) -- 2 furnaces x 18.75 crafts x 1 ore
+    end)
+
     it("is limited by the ingredient lane when that is the one that runs out first", function()
       local recipe = {energy = 3.2, ingredients = {amount_of(2, "iron-ore")}, products = {amount_of(1, "iron-plate")}}
       -- One furnace eats 37.5 ore a minute, so a 450 lane feeds 12 furnaces (225 plates),

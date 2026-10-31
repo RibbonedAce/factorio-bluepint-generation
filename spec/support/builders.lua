@@ -119,61 +119,90 @@ function builders.a_catalog(options)
 end
 
 --------------------------------------------------------------------------------
--- A stand-in for the game's `prototypes` table, for generator tests.
+-- Stand-ins for the game's prototypes, for generator tests.
 --------------------------------------------------------------------------------
 
+-- A recipe prototype. All three options are required: a recipe's time and
+-- amounts are exactly what a test's expectation depends on, so a test must say them.
+--     a_recipe{energy = 3.2, ingredients = {amount_of(2, "stone")}, products = {amount_of(1, "stone-brick")}}
+---@param options {energy: number, ingredients: bpgen.RecipeItem[], products: bpgen.RecipeItem[]}
+---@return table
+function builders.a_recipe(options)
+  local function as_prototype_items(amounts)
+    local items = {}
+    for _, amount in ipairs(amounts) do
+      items[#items + 1] = {type = "item", name = amount.name, amount = amount.amount}
+    end
+    return items
+  end
+
+  local products = as_prototype_items(options.products)
+  return {
+    energy = options.energy,
+    ingredients = as_prototype_items(options.ingredients),
+    products = products,
+    get_product_amount = function(index) return products[index].amount end,
+  }
+end
+
+-- A stand-in for the game's `prototypes` table. What exists is what the test
+-- says: no recipe is there unless the test lists it.
+--
 -- Options (all optional):
---   furnace_speed   the stone furnace's crafting speed, default 1
---   belt_speed      the transport belt's speed, default 0.03125
---   recipe_energy   seconds per craft of the plate and brick recipes, default 3.2
--- The result can be changed afterwards, for example `fake.entity["inserter"] = nil`.
----@param options? {furnace_speed?: number, belt_speed?: number, recipe_energy?: number}
+--   recipes           recipes by name, each made with `a_recipe`; default none
+--   furnace_speed     the stone furnace's crafting speed, default 1;
+--                     `false` makes it an entity that cannot craft
+--   belt_speed        the transport belt's speed, default 0.03125;
+--                     `false` makes it an entity without a belt speed
+--   missing_entities  names of buildings the game does not have, default none
+-- The buildings the layout uses (furnace, belt, inserter, pole) exist unless
+-- listed as missing. Every item a recipe mentions exists, and so does coal, the fuel.
+---@param options? {recipes?: table<string, table>, furnace_speed?: number|false, belt_speed?: number|false, missing_entities?: string[]}
 ---@return table  a stand-in for the game's `prototypes`
 function builders.fake_prototypes(options)
   options = options or {}
-  local furnace_speed = options.furnace_speed or 1
-  local belt_speed = options.belt_speed or 0.03125
-  local recipe_energy = options.recipe_energy or 3.2
+  local function option(value, default)
+    if value == nil then
+      return default
+    end
+    return value
+  end
+  local furnace_speed = option(options.furnace_speed, 1)
+  local belt_speed = option(options.belt_speed, 0.03125)
 
   local function entity(name, crafting_speed, speed)
     return {
       localised_name = {"entity-name." .. name},
-      get_crafting_speed = function() return crafting_speed end,
-      belt_speed = speed,
-    }
-  end
-  -- A recipe that turns `amount` of `ingredient` into one `product`.
-  local function recipe(ingredient, amount, product)
-    return {
-      energy = recipe_energy,
-      ingredients = {{type = "item", name = ingredient, amount = amount}},
-      products = {{type = "item", name = product, amount = 1}},
-      get_product_amount = function() return 1 end,
+      get_crafting_speed = function() return crafting_speed or nil end,
+      belt_speed = speed or nil,
     }
   end
   local function item(name)
     return {localised_name = {"item-name." .. name}}
   end
 
-  return {
-    entity = {
-      ["stone-furnace"] = entity("stone-furnace", furnace_speed, nil),
-      ["transport-belt"] = entity("transport-belt", nil, belt_speed),
-      ["inserter"] = entity("inserter", nil, nil),
-      ["small-electric-pole"] = entity("small-electric-pole", nil, nil),
-    },
-    recipe = {
-      ["iron-plate"] = recipe("iron-ore", 1, "iron-plate"),
-      ["copper-plate"] = recipe("copper-ore", 1, "copper-plate"),
-      ["stone-brick"] = recipe("stone", 2, "stone-brick"),
-    },
-    item = {
-      ["iron-plate"] = item("iron-plate"), ["copper-plate"] = item("copper-plate"),
-      ["iron-ore"] = item("iron-ore"), ["copper-ore"] = item("copper-ore"),
-      ["stone"] = item("stone"), ["stone-brick"] = item("stone-brick"),
-      ["coal"] = item("coal"),
-    },
+  local entities = {
+    ["stone-furnace"] = entity("stone-furnace", furnace_speed, nil),
+    ["transport-belt"] = entity("transport-belt", nil, belt_speed),
+    ["inserter"] = entity("inserter", nil, nil),
+    ["small-electric-pole"] = entity("small-electric-pole", nil, nil),
   }
+  for _, name in ipairs(options.missing_entities or {}) do
+    entities[name] = nil
+  end
+
+  local recipes = options.recipes or {}
+  local items = {["coal"] = item("coal")}
+  for _, recipe in pairs(recipes) do
+    for _, amount in ipairs(recipe.ingredients) do
+      items[amount.name] = item(amount.name)
+    end
+    for _, amount in ipairs(recipe.products) do
+      items[amount.name] = item(amount.name)
+    end
+  end
+
+  return {entity = entities, recipe = recipes, item = items}
 end
 
 return builders
